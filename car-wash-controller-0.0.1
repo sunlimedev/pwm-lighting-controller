@@ -1,0 +1,49 @@
+# Car Wash Controller
+# Version 0.0.1 - 11/03/2025
+# Developed by Andrew Rosen for Signal-Tech in Erie, PA
+# Designed for use on Raspberry Pi 4 Model B 8GB
+
+# References:
+# https://gpiozero.readthedocs.io
+# https://datasheets.raspberrypi.com/rpi4/raspberry-pi-4-datasheet.pdf
+# https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#gpio
+# https://semver.org/
+
+from gpiozero import PWMLED
+from time import sleep
+
+
+######################### PWM pin initialization #########################
+
+# NOTE: pin numbering is based on broadcom pin numbers
+
+red = PWMLED(13)     # set gpio13 as software pwm pin controlling red LED
+green = PWMLED(19)   # set gpio19 as software pwm pin controlling green LED
+blue = PWMLED(26)    # set gpio26 as software pwm pin controlling green LED
+
+
+######################### Right-sided Spike Switching #########################
+
+# leds each brighten linearly to 100% then reset
+
+rval = 0    # start red led dividend at 0%
+gval = 33   # start green led dividend at 33%
+bval = 66   # start blue led dividend at 66%
+
+while(1):
+    if(rval == 100):
+        rval = 0       # if red dividend values reach max, reset to zero
+    if(gval == 100):
+        gval = 0       # if green dividend values reach max, reset to zero
+    if(bval == 100):
+        bval = 0       # if blue dividend values reach max, reset to zero
+
+    rval += 1   # increment red brightness percentage by 1
+    gval += 1   # increment green brightness percentage by 1
+    bval += 1   # increment blue brightness percentage by 1
+
+    red.value = rval/100.0     # set new red led brightness percentage
+    green.value = gval/100.0   # set new green led brightness percentage
+    blue.value = bval/100.0    # set new blue led brightness percentage
+    
+    sleep(0.02)   # stall instructions for 20 milliseconds 
