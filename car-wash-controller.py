@@ -17,8 +17,10 @@
 # Rename sequence_decay() to sequence_pulse()
 # Reduced max speed for all functions
 # Reduced startup_blink() duration
+# Add random_solid_anybright() function
 
 # Packages:
+import random
 import numpy as np
 from gpiozero import PWMLED
 from time import sleep
@@ -35,9 +37,9 @@ def initialize_pwm(red_pin, green_pin, blue_pin):
     global red, green, blue
 
     # set passed GPIO pin as PWM color channel
-    red = PWMLED(pin=red_pin, active_high=True, initial_value=0.0, frequency=200)
-    green = PWMLED(pin=green_pin, active_high=True, initial_value=0.0, frequency=200)
-    blue = PWMLED(pin=blue_pin,  active_high=True, initial_value=0.0, frequency=200)
+    red = PWMLED(pin=red_pin, active_high=True, initial_value=0, frequency=200)
+    green = PWMLED(pin=green_pin, active_high=True, initial_value=0, frequency=200)
+    blue = PWMLED(pin=blue_pin,  active_high=True, initial_value=0, frequency=200)
 
 
 def startup_blink():
@@ -105,7 +107,7 @@ def sequence_pulse(color_list, speed):
 
             for x in range(0, 10):
                 # quickly increase brightness based on linear function
-                brightness = (1/9) * x
+                brightness = (1 / 9) * x
                 # assign final color with brightness to color channels
                 red.value = temp_red * brightness
                 green.value = temp_green * brightness
@@ -134,6 +136,20 @@ def sequence_pulse(color_list, speed):
             sleep(delay)
 
 
+def random_solid_anybright(speed):
+    # normalize cycle time to 0.5 seconds to 5 seconds
+    delay = 5 / speed
+
+    while True:
+        # randomly set color channel brightness between 0 and 1 (both inclusive)
+        red.value = random.uniform(0, 1)
+        green.value = random.uniform(0, 1)
+        blue.value = random.uniform(0, 1)
+
+        # hold the current color for the delay length
+        sleep(delay)
+
+
 def rainbow_spike(speed):
     # normalize cycle time to 0.5 seconds to 5 seconds
     delay = 0.100 / speed
@@ -158,9 +174,9 @@ def rainbow_spike(speed):
         temp_blue += 2
 
         # assign brightness to each color channel
-        red.value = temp_red / 100.0
-        green.value = temp_green / 100.0
-        blue.value = temp_blue / 100.0
+        red.value = temp_red / 100
+        green.value = temp_green / 100
+        blue.value = temp_blue / 100
 
         # hold the current color for the delay length
         sleep(delay)
@@ -210,6 +226,7 @@ def main():
     sequence_solid(color_list, speed)
     #sequence_fade(color_list, speed)
     #sequence_pulse(color_list, speed)
+    #random_solid_anybright(speed)
     #rainbow_spike(speed)
     #rainbow_smooth(speed)
 
