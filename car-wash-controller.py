@@ -1,9 +1,16 @@
 # Car Wash Controller
 # Developed for Signal-Tech in Erie, PA
-# Designed for use on Raspberry Pi 4 4GB/8GB
+# Designed for use on Raspberry Pi 4 Model B 8GB
 
 # Changes from last version:
-# increased pwm frequency to 4kHz
+# PWM frequency increased to 4kHz
+# Shortened startup sequence time and blinks
+# Remove rainbow spike function
+# Remove rainbow anybright function
+# Add brightness variable (not fully implemented)
+
+# To-do:
+# Add stop time w/ weekday and time
 
 # Packages:
 import random
@@ -29,20 +36,20 @@ def initialize_pwm(red_pin, green_pin, blue_pin):
 
 
 def startup_blink():
-    for i in range(5):
+    for i in range(3):
         # set all channels to max (white)
-        red.value = 1
-        green.value = 1
-        blue.value = 1
-        # hold white for 0.5 second
-        sleep(0.5)
+        red.value = 0.5
+        green.value = 0.5
+        blue.value = 0.5
+        # hold white for 0.25 second
+        sleep(0.25)
 
         # set all channels off
         red.value = 0
         green.value = 0
         blue.value = 0
-        # hold off for 0.5 second
-        sleep(0.5)
+        # hold off for 0.25 second
+        sleep(0.25)
 
 
 def sequence_solid(color_list, cycle_time):
@@ -119,49 +126,6 @@ def sequence_pulse(color_list, cycle_time):
             sleep(step_time)
 
 
-def random_solid_anybright(cycle_time):
-    while True:
-        # randomly set color channel brightness between 0 and 1
-        red.value = random.uniform(0, 1)
-        green.value = random.uniform(0, 1)
-        blue.value = random.uniform(0, 1)
-
-        # hold the current color for the cycle time
-        sleep(cycle_time)
-
-
-def rainbow_spike(cycle_time):
-    # create smaller time increment for loop
-    step_time = cycle_time / 50
-
-    # set color channel starting brightness
-    temp_red = 0
-    temp_green = 34
-    temp_blue = 68
-
-    while True:
-        # reset color channel brightness to 0% after reaching 100%
-        if temp_red == 100:
-            temp_red = 0
-        elif temp_green == 100:
-            temp_green = 0
-        elif temp_blue == 100:
-            temp_blue = 0
-
-        # increment color channel brightness by 2%
-        temp_red += 2
-        temp_green += 2
-        temp_blue += 2
-
-        # assign brightness to each color channel
-        red.value = temp_red / 100
-        green.value = temp_green / 100
-        blue.value = temp_blue / 100
-
-        # hold the current color for the step_time
-        sleep(step_time)
-
-
 def rainbow_smooth(cycle_time):
     # create smaller time increment for loop
     step_time = cycle_time / 50
@@ -180,16 +144,28 @@ def rainbow_smooth(cycle_time):
 
 
 def main():
+    ################## user-defined variables ##################
+
     # provide GPIO pins to use
     red_pin = 13
     green_pin = 19
     blue_pin = 26
 
     # choose speed (1 = slowest, 10 = fastest)
-    speed = 5
-    
-    # derive cycle time from speed (1 = 5 seconds, 10 = 0.5 seconds)
-    cycle_time = -(speed / 2) + 5.5
+    speed = 9
+
+    # choose brightness (1 = lowest, 10 = brightest)
+    brightness = 10
+
+    # create ordered list of color values
+    color_list = [[1, 0, 0],     # red
+                  [1, 0.5, 0],   # orange
+                  [1, 1, 0],     # yellow
+                  [0, 1, 0],     # green
+                  [0, 0, 1],     # blue
+                  [1, 0, 1]]     # purple
+
+    ################ initialization and startup ################
 
     # initialize GPIO pins for each color channel
     initialize_pwm(red_pin, green_pin, blue_pin)
@@ -197,21 +173,23 @@ def main():
     # blink white 5 times for startup
     startup_blink()
 
-    # create ordered list of color values -- r o y g b p
-    color_list = [[1, 0, 0],
-                  [1, 0.5, 0],
-                  [1, 1, 0],
-                  [0, 1, 0],
-                  [0, 0, 1],
-                  [1, 0, 1]]
+    ############## rework variables for functions ##############
+
+    # derive cycle time from speed (1 = 5s, 10 = 0.5s)
+    cycle_time = -(speed / 2) + 5.5
+
+    # adjust brightness value
+    brightness = 1
+
+    ################ choose a lighting function ################
 
     # test a lighting function
-    #sequence_solid(color_list, cycle_time)
-    #sequence_fade(color_list, cycle_time)
-    #sequence_pulse(color_list, cycle_time)
-    #random_solid_anybright(cycle_time)
-    #rainbow_spike(cycle_time)
-    rainbow_smooth(cycle_time)
+    
+    # sequence_solid(color_list, cycle_time)
+    # sequence_fade(color_list, cycle_time)
+    # sequence_pulse(color_list, cycle_time)
+    # rainbow_smooth(cycle_time)
+
 
 if __name__ == "__main__":
     # direct execution check
