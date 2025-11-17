@@ -2,7 +2,7 @@
 import random
 import numpy as np
 from threading import Thread, Event
-from gpiozero import PWMLED, InputDevice, Button
+from gpiozero import PWMLED, Button
 from time import sleep
 
 
@@ -138,7 +138,7 @@ def sequence_pulse(color_list, cycle_time):
                 return None
 
 
-def rainbow_smooth(cycle_time):
+def rainbow_smooth(color_list, cycle_time):
     # create smaller time increment for loop
     step_time = cycle_time / 50
 
@@ -151,8 +151,9 @@ def rainbow_smooth(cycle_time):
             green.value = (0.5 * np.sin(x + ((4 * np.pi) / 3))) + 0.5
             blue.value = (0.5 * np.sin(x + ((2 * np.pi) / 3))) + 0.5
 
-            # hold the current color for the step_time
-            sleep(step_time)
+            # check for raised flag during the step time timeout
+            if stop_flag.wait(timeout=step_time):
+                return None
 
 
 def main():
@@ -167,7 +168,7 @@ def main():
     input_pins = [14, 15, 18, 23, 24, 25, 8, 7]
 
     # choose speed (1 = slowest, 10 = fastest)
-    speed = 10
+    speed = 5
 
     # choose brightness (1 = lowest, 10 = brightest)
     brightness = 10
@@ -208,7 +209,7 @@ def main():
     # sequence_pulse(color_list, cycle_time)
     # rainbow_smooth(cycle_time)
 
-    light_thread = Thread(target=sequence_fade, args=(color_list, cycle_time))
+    light_thread = Thread(target=rainbow_smooth, args=(color_list, cycle_time))
     light_thread.start()
 
     while True:
