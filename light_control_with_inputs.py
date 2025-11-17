@@ -11,7 +11,6 @@ red = None
 green = None
 blue = None
 inputs = [None, None, None, None, None, None, None, None]
-PI = 3.1415
 stop_flag = Event()
 
 
