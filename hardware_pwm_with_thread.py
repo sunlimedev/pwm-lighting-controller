@@ -46,10 +46,12 @@
 # typing_extensions                        4.15.0
 # tzdata                                   2025.2
 
+# might need to change sine functions so that dimmer doesn't bring brightness under 50%
+
 import board
 import busio
-import time
-import numpy as np
+# import time
+# import numpy as np
 from adafruit_pca9685 import PCA9685
 from threading import Thread, Event
 from gpiozero import PWMLED, Button
@@ -164,20 +166,21 @@ def sequence_decay(color_list, cycle_time, dimmer):
                 pwm.channels[1].duty_cycle = int(color_list[color][1] * (decay_list[i] - dimmer))
                 pwm.channels[2].duty_cycle = int(color_list[color][2] * (decay_list[i] - dimmer))
 
-                # check for raised flag during the step time timeout
+                # check for raised flag during the step_time timeout
                 if stop_flag.wait(timeout=step_time):
                     return None
 
-# in progress
+# good -- test
 def rainbow_smooth(_, cycle_time, dimmer):
     # create smaller time increment for loop
     step_time = cycle_time / 50
 
     while True:
         for i in range(0, 50):
-            pwm.channels[0].duty_cycle = sine_list1[i] -
-            pwm.channels[1].duty_cycle = sine_list2[i] -
-            pwm.channels[2].duty_cycle = sine_list3[i] -
+            #                            0-65535     -     scaled dimmer value
+            pwm.channels[0].duty_cycle = sine_list1[i] - int((sine_list1[i] / 65535) * dimmer)
+            pwm.channels[1].duty_cycle = sine_list2[i] - int((sine_list1[i] / 65535) * dimmer)
+            pwm.channels[2].duty_cycle = sine_list3[i] - int((sine_list1[i] / 65535) * dimmer)
 
             # check for raised flag during the step time timeout
             if stop_flag.wait(timeout=step_time):
@@ -220,7 +223,7 @@ def main():
     # derive cycle time from speed (1 = 5s, 10 = 0.5s)
     cycle_time = -(speed / 2) + 5.5
 
-    # adjust brightness value
+    # adjust brightness value (max dimming is 20%)
     dimmer = int((brightness/10) * 0x3333)
 
     ################ choose a lighting function ################
@@ -249,4 +252,3 @@ def main():
 if __name__ == "__main__":
     # direct execution check
     main()
-
