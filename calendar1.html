@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Event Schedule</title>
+    <style>
+        /* Basic CSS for styling the calendar */
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .week-container {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr); /* 7 columns for 7 days */
+            gap: 10px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        .day-column {
+            border: 1px solid #eee;
+            padding: 10px;
+            min-height: 150px; /* Adjust as needed */
+        }
+        .day-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .event {
+            background-color: #f0f8ff;
+            border-left: 3px solid #007bff;
+            padding: 5px;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        .event-time {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Weekly Event Schedule</h1>
+
+    <div class="week-container">
+        <div class="day-column">
+            <div class="day-header">Monday</div>
+            <div class="event">
+                <span class="event-time">09:00 AM</span> Meeting with Team A
+            </div>
+            <div class="event">
+                <span class="event-time">02:00 PM</span> Project Review
+            </div>
+        </div>
+        <div class="day-column">
+            <div class="day-header">Tuesday</div>
+            <div class="event">
+                <span class="event-time">10:30 AM</span> Client Presentation
+            </div>
+        </div>
+        <div class="day-column">
+            <div class="day-header">Wednesday</div>
+            <!-- No events for Wednesday in this example -->
+        </div>
+        <div class="day-column">
+            <div class="day-header">Thursday</div>
+            <div class="event">
+                <span class="event-time">11:00 AM</span> Training Session
+            </div>
+            <div class="event">
+                <span class="event-time">03:00 PM</span> Deadline for Report
+            </div>
+        </div>
+        <div class="day-column">
+            <div class="day-header">Friday</div>
+            <div class="event">
+                <span class="event-time">09:30 AM</span> Weekly Stand-up
+            </div>
+        </div>
+        <div class="day-column">
+            <div class="day-header">Saturday</div>
+            <!-- No events for Saturday in this example -->
+        </div>
+        <div class="day-column">
+            <div class="day-header">Sunday</div>
+            <!-- No events for Sunday in this example -->
+        </div>
+    </div>
+
+</body>
+</html>

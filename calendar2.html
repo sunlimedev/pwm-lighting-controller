@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Event Schedule with Duration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+        }
+
+        .schedule-container {
+            max-width: 1000px;
+            margin: auto;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        /* Basic Cell Styling */
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+            vertical-align: top; /* Ensures content starts at the top of multi-hour events */
+            height: 50px; /* Base height for one time slot (1 hour in this case) */
+            box-sizing: border-box;
+        }
+
+        /* Header Styling */
+        thead th {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Event Styling */
+        .event {
+            background-color: #e0f7fa; /* Light blue background for events */
+            color: #004d40;
+            cursor: pointer;
+            text-align: left;
+            padding: 15px 10px;
+            line-height: 1.4;
+        }
+
+        .event:hover {
+            background-color: #b2ebf2;
+        }
+
+        .event-time {
+            display: block;
+            font-size: 0.8em;
+            margin-top: 5px;
+            color: #00796b;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="schedule-container">
+        <h1>Weekly Schedule: Dec 2 - Dec 8, 2025</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Monday</th>
+                    <th>Tuesday</th>
+                    <th>Wednesday</th>
+                    <th>Thursday</th>
+                    <th>Friday</th>
+                    <th>Saturday</th>
+                    <th>Sunday</th>
+                </tr>
+            </thead>
+            <tbody>
+
+
+                <!-- 7:00 AM Slot -->
+                <tr>
+                    <td>07:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+
+                <!-- 7:00 AM Slot -->
+                <tr>
+                    <td>07:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+
+                <!-- 7:00 AM Slot -->
+                <tr>
+                    <td>07:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+
+                <!-- 5:00 AM Slot -->
+                <tr>
+                    <td>05:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+
+                <!-- 6:00 AM Slot -->
+                <tr>
+                    <td>06:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+                <!-- 7:00 AM Slot -->
+                <tr>
+                    <td>07:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+                <!-- 8:00 AM Slot -->
+                <tr>
+                    <td>08:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="event" rowspan="2">
+                        <strong>Client Call</strong>
+                        <span class="event-time">08:00 - 10:00</span>
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+                <!-- 9:00 AM Slot -->
+                <tr>
+                    <td>09:00</td>
+                    <td class="event" rowspan="3">
+                        <strong>Team Meeting</strong>
+                        <span class="event-time">09:00 - 12:00</span>
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <!-- Thursday 09:00 is spanned by 08:00 event -->
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                
+                <!-- 10:00 AM Slot -->
+                <tr>
+                    <td>10:00</td>
+                    <!-- Monday 10:00 is spanned by 09:00 event -->
+                    <td></td>
+                    <td class="event" rowspan="2">
+                        <strong>Project Review</strong>
+                        <span class="event-time">10:00 - 12:00</span>
+                    </td>
+                    <!-- Thursday 10:00 is spanned by 08:00 event -->
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+                <!-- 11:00 AM Slot -->
+                <tr>
+                    <td>11:00</td>
+                    <!-- Monday 11:00 is spanned by 09:00 event -->
+                    <td></td>
+                    <!-- Wednesday 11:00 is spanned by 10:00 event -->
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+                <!-- 12:00 PM Slot -->
+                <tr>
+                    <td>12:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="event" rowspan="1">
+                        <strong>Lunch Date</strong>
+                        <span class="event-time">12:00 - 13:00</span>
+                    </td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                
+                <!-- 01:00 PM Slot (13:00) -->
+                <tr>
+                    <td>13:00</td>
+                    <td></td>
+                    <td class="event" rowspan="2">
+                        <strong>Coding Session</strong>
+                        <span class="event-time">13:00 - 15:00</span>
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="event" rowspan="3">
+                        <strong>Hike in Park</strong>
+                        <span class="event-time">13:00 - 16:00</span>
+                    </td>
+                    <td></td>
+                </tr>
+
+                <!-- 02:00 PM Slot (14:00) -->
+                <tr>
+                    <td>14:00</td>
+                    <td></td>
+                    <!-- Tuesday 14:00 is spanned by 13:00 event -->
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <!-- Saturday 14:00 is spanned by 13:00 event -->
+                    <td class="event" rowspan="2">
+                        <strong>Brunch</strong>
+                        <span class="event-time">14:00 - 16:00</span>
+                    </td>
+                </tr>
+
+                <!-- 03:00 PM Slot (15:00) -->
+                <tr>
+                    <td>15:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <!-- Saturday 15:00 is spanned by 13:00 event -->
+                    <!-- Sunday 15:00 is spanned by 14:00 event -->
+                </tr>
+                
+                <!-- 04:00 PM Slot (16:00) -->
+                <tr>
+                    <td>16:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+                <!-- 05:00 PM Slot (17:00) -->
+                <tr>
+                    <td>17:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+                <!-- 06:00 PM Slot (18:00) -->
+                <tr>
+                    <td>18:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+                <!-- 07:00 PM Slot (19:00) -->
+                <tr>
+                    <td>19:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+                <!-- 08:00 PM Slot (20:00) -->
+                <tr>
+                    <td>20:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+                <!-- 09:00 PM Slot (21:00) -->
+                <tr>
+                    <td>21:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+                <!-- 10:00 PM Slot (22:00) -->
+                <tr>
+                    <td>22:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+                <!-- 11:00 PM Slot (23:00) -->
+                <tr>
+                    <td>23:00</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>
