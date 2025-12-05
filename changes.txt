@@ -1,0 +1,31 @@
+in venv:
+pip install:
+
+smbus2
+python-time
+gpiozero
+Flask
+Adafruit-Blinka
+adafruit-circuitpython-pca9685
+Adafruit_PCA9685
+thread
+adafruit-python-shell
+adafruit-circuitpython-neopixel
+adafruit-circuitpython-pixelbuf
+numpy
+
+pip install --upgrade --force-reinstall Adafruit-Blinka
+
+---------------------------------
+enable i2c:
+
+sudo raspi-config nonint do_i2c 0
+---------------------------------
+system-wide:
+
+sudo apt install swig python3-dev build-essential
+sudo apt install liblgpio-dev
+
+then in venv:
+
+pip install lgpio
