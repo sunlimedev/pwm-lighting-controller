@@ -7,8 +7,10 @@
 # $ source .venv/bin/activate
 # $ python filename.py
 
-# required packages:
-# Adafruit-Blinka                          8.67.0
+# Package                                  Version
+# ---------------------------------------- -----------
+# Adafruit-Blinka                          8.68.0
+# Adafruit-Blinka-Raspberry-Pi5-Neopixel   1.0.0rc2
 # adafruit-circuitpython-busdevice         5.2.14
 # adafruit-circuitpython-connectionmanager 3.1.6
 # adafruit-circuitpython-neopixel          6.3.18
@@ -17,17 +19,24 @@
 # adafruit-circuitpython-register          1.11.1
 # adafruit-circuitpython-requests          4.1.15
 # adafruit-circuitpython-typing            1.12.3
-# Adafruit_GPIO                            1.0.3
-# Adafruit_PCA9685                         1.0.1
-# Adafruit-PlatformDetect                  3.84.1
+# Adafruit-GPIO                            1.0.3
+# Adafruit-PCA9685                         1.0.1
+# Adafruit-PlatformDetect                  3.85.0
 # Adafruit-PureIO                          1.1.11
 # adafruit-python-shell                    1.11.0
 # args                                     0.1.0
 # arrow                                    1.4.0
 # binho-host-adapter                       0.1.6
+# blinker                                  1.9.0
+# click                                    8.3.1
 # clint                                    0.5.1
 # colorzero                                2.0
+# Flask                                    3.1.2
 # gpiozero                                 2.0.1
+# itsdangerous                             2.2.0
+# Jinja2                                   3.1.6
+# lgpio                                    0.2.2.0
+# MarkupSafe                               3.0.3
 # numpy                                    2.3.5
 # pip                                      25.1.1
 # pyftdi                                   0.57.1
@@ -45,6 +54,7 @@
 # thread                                   2.0.5
 # typing_extensions                        4.15.0
 # tzdata                                   2025.2
+# Werkzeug                                 3.1.4
 
 # might need to change sine functions so that dimmer doesn't bring brightness under 50%
 
@@ -123,10 +133,10 @@ def startup_blink():
         # hold off for 0.25 second
         sleep(0.25)
 
-# good -- test
+# good
 def sequence_solid(color_list, cycle_time, dimmer):
     while True:
-        for color in color_list:
+        for color in range(len(color_list)):
             # assign color list contents to color channels with brightness
             pwm.channels[0].duty_cycle = int(color_list[color][0]*(65535 - dimmer))
             pwm.channels[1].duty_cycle = int(color_list[color][1]*(65535 - dimmer))
@@ -136,13 +146,13 @@ def sequence_solid(color_list, cycle_time, dimmer):
             if stop_flag.wait(timeout=cycle_time):
                 return None
 
-# good -- test
+#  need to change the sine table so it starts at 0 (desmos)
 def sequence_fade(color_list, cycle_time, dimmer):
     # create smaller time increment for loop
     step_time = cycle_time / 50
 
     while True:
-        for color in color_list:
+        for color in range(len(color_list)):
             for i in range(0, 50):
                 # assign final color with brightness to color channels
                 pwm.channels[0].duty_cycle = int(color_list[color][0] * (sine_list1[i] - dimmer))
@@ -153,13 +163,13 @@ def sequence_fade(color_list, cycle_time, dimmer):
                 if stop_flag.wait(timeout=step_time):
                     return None
 
-# good -- test
+# need to make it so table can reach zero rather than stopping at 50%
 def sequence_decay(color_list, cycle_time, dimmer):
     # create smaller time increment for loop
     step_time = cycle_time / 50
 
     while True:
-        for color in color_list:
+        for color in range(len(color_list)):
             for i in range(0, 50):
                 # assign final color with brightness to color channels
                 pwm.channels[0].duty_cycle = int(color_list[color][0] * (decay_list[i] - dimmer))
@@ -170,7 +180,7 @@ def sequence_decay(color_list, cycle_time, dimmer):
                 if stop_flag.wait(timeout=step_time):
                     return None
 
-# good -- test
+# stays very white at 100% brightness, need to change sine table
 def rainbow_smooth(_, cycle_time, dimmer):
     # create smaller time increment for loop
     step_time = cycle_time / 50
@@ -194,7 +204,7 @@ def main():
     input_pins = [14, 15, 18, 23, 24, 25, 8, 7]
 
     # choose speed (1 = slowest, 10 = fastest)
-    speed = 5
+    speed = 10
 
     # choose brightness (1 = lowest, 10 = brightest)
     brightness = 10
@@ -223,19 +233,18 @@ def main():
     # derive cycle time from speed (1 = 5s, 10 = 0.5s)
     cycle_time = -(speed / 2) + 5.5
 
-    # adjust brightness value (max dimming is 20%)
-    dimmer = int((brightness/10) * 0x3333)
+    # adjust brightness value (max dimming is 50% -- 0x7FFF or 32767)
+    dimmer = int((32768 / 9) * (10 - brightness))
 
     ################ choose a lighting function ################
 
     # test a lighting function
-
     # sequence_solid(color_list, cycle_time, dimmer)
     # sequence_fade(color_list, cycle_time, dimmer)
-    # sequence_pulse(color_list, cycle_time, dimmer)
+    # sequence_decay(color_list, cycle_time, dimmer)
     # rainbow_smooth(color_list, cycle_time, dimmer)
 
-    light_thread = Thread(target=rainbow_smooth, args=(color_list, cycle_time, dimmer))
+    light_thread = Thread(target=sequence_decay, args=(color_list, cycle_time, dimmer))
     light_thread.start()
 
     while True:
