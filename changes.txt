@@ -39,7 +39,7 @@ pip install lgpio
 --------------------------------------------------------
 Guide:
 
-Perform the following commands system-wide on a fresh install:
+Perform the following commands system-wide on a fresh OS:
 
 $ sudo apt update -y
 $ sudo apt upgrade -y
@@ -48,7 +48,7 @@ $ sudo apt install swig python3-dev build-essential
 $ sudo apt install liblgpio-dev
 
 Once finished, restart your device.
-The follwing commands create a project folder and install the necessary packages inside of a Python Virtual Environment:
+Perform the following commands to create a project folder and install the necessary packages inside of a Python Virtual Environment:
 
 $ mkdir project
 $ cd project
