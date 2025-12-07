@@ -201,7 +201,7 @@ def main():
     ################## user-defined variables ##################
 
     # provide input pins to use
-    input_pins = [14, 15, 18, 23, 24, 25, 8, 7]
+    input_pins = [22, 10, 19, 11, 5, 6, 13, 26]
 
     # choose speed (1 = slowest, 10 = fastest)
     speed = 10
