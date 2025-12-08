@@ -1,4 +1,4 @@
-# create sine function lists to be used as lookup tables
+# create byte lists from sine functions to be used as lookup tables
 import numpy as np
 
 x = np.linspace(0, 2*np.pi, 100, endpoint=False, dtype=float)
