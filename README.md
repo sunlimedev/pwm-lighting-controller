@@ -1,7 +1,7 @@
 # Car Wash Controller
 Python-based software controller for PWM lighting systems.
 
-# References:
+# References
 
 https://gpiozero.readthedocs.io
 
