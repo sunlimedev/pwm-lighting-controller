@@ -2,7 +2,7 @@
   "scenes": [
     {
       "num": 0,
-      "brightness": 80,
+      "brightness": 8,
       "speed": 5,
       "start_time": "0600",
       "stop_time": "2200",
@@ -12,7 +12,7 @@
     },
     {
       "num": 1,
-      "brightness": 60,
+      "brightness": 6,
       "speed": 3,
       "start_time": "1800",
       "stop_time": "2300",
