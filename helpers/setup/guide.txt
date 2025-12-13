@@ -17,7 +17,6 @@ $ python -m venv venv
 /project $ source venv/bin/activate
 (venv) /project $ pip install gpiozero
 (venv) /project $ pip install python-time
-(venv) /project $ pip install thread
 (venv) /project $ pip install adafruit-blinka
 (venv) /project $ pip install adafruit-circuitpython-pca9685
 (venv) /project $ pip install lgpio
