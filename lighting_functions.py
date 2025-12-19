@@ -1,9 +1,10 @@
 import board
 import busio
+import time
+from adafruit_ds3231 import DS3231
 from adafruit_pca9685 import PCA9685
 from threading import Thread, Event
 from gpiozero import Button
-from time import sleep, time
 
 # thread stop flag
 stop_flag = Event()
@@ -16,20 +17,25 @@ sine2 = [0xbfff, 0xb8e9, 0xb199, 0xaa18, 0xa26b, 0x9a9c, 0x92b2, 0x8ab5, 0x82ae,
 morse = [0x0, 0x644, 0x1872, 0x34c3, 0x5872, 0x7fff, 0xa78d, 0xcb3c, 0xe78d, 0xf9bb, 0xffff, 0xf9bb, 0xe78d, 0xcb3c, 0xa78d, 0x8000, 0x5872, 0x34c3, 0x1872, 0x644, 0x0, 0x644, 0x1872, 0x34c3, 0x5872, 0x7fff, 0xa78d, 0xcb3c, 0xe78d, 0xf9bb, 0xffff, 0xf9bb, 0xe78d, 0xcb3c, 0xa78d, 0x8000, 0x5872, 0x34c3, 0x1872, 0x644, 0x0, 0x644, 0x1872, 0x34c3, 0x5872, 0x7fff, 0xa78d, 0xcb3c, 0xe78d, 0xf9bb, 0xffff, 0xf9bb, 0xe78d, 0xcb3c, 0xa78d, 0x8000, 0x5872, 0x34c3, 0x1872, 0x644, 0x0, 0x644, 0x1872, 0x34c3, 0x5872, 0x7fff, 0xa78d, 0xcb3c, 0xe78d, 0xf9bb, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xf9bb, 0xe78d, 0xcb3c, 0xa78d, 0x8000, 0x5872, 0x34c3, 0x1872, 0x644]
 wigwag = [0x0, 0x0, 0xffff, 0xffff, 0x0, 0xffff, 0xffff, 0x0, 0xffff, 0xffff]
 sos = [0x0, 0x0, 0x0, 0x0, 0xffff, 0xffff, 0xffff, 0xffff, 0x0, 0x0, 0x0, 0x0, 0xffff, 0xffff, 0xffff, 0xffff, 0x0, 0x0, 0x0, 0x0, 0xffff, 0xffff, 0xffff, 0xffff, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0, 0x0, 0x0, 0x0, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0, 0x0, 0x0, 0x0, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xffff, 0xffff, 0xffff, 0xffff, 0x0, 0x0, 0x0, 0x0, 0xffff, 0xffff, 0xffff, 0xffff, 0x0, 0x0, 0x0, 0x0, 0xffff, 0xffff, 0xffff, 0xffff, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]
-wiggle = [0x8000, 0x8128, 0x8495, 0x8a28, 0x91ae, 0x9ae0, 0xa569, 0xb0e9, 0xbcf4, 0xc91b, 0xd4ee, 0xdfff, 0xe9e8, 0xf24e, 0xf8e2, 0xfd67, 0xffb5, 0xffb5, 0xfd67, 0xf8e2, 0xf24e, 0xe9e8, 0xdfff, 0xd4ee, 0xc91b, 0xbcf4, 0xb0e9, 0xa569, 0x9ae0, 0x91ae, 0x8a28, 0x8495, 0x8128, 0x8000, 0x8128, 0x8495, 0x8a28, 0x91ae, 0x9ae0, 0xa569, 0xb0e9, 0xbcf4, 0xc91b, 0xd4ee, 0xdfff, 0xe9e8, 0xf24e, 0xf8e2, 0xfd67, 0xffb5, 0xffff, 0xffb5, 0xfd67, 0xf8e2, 0xf24e, 0xe9e8, 0xdfff, 0xd4ee, 0xc91b, 0xbcf4, 0xb0e9, 0xa569, 0x9ae0, 0x91ae, 0x8a28, 0x8495, 0x8128, 0x8000, 0x8128, 0x8495, 0x8a28, 0x91ae, 0x9ae0, 0xa569, 0xb0e9, 0xbcf4, 0xc91b, 0xd4ee, 0xdfff, 0xe9e8, 0xf24e, 0xf8e2, 0xfd67, 0xffb5, 0xffb5, 0xfd67, 0xf8e2, 0xf24e, 0xe9e8, 0xdfff, 0xd4ee, 0xc91b, 0xbcf4, 0xb0e9, 0xa569, 0x9ae0, 0x91ae, 0x8a28, 0x8495, 0x8128]
+breathe = [0x8000, 0x8128, 0x8495, 0x8a28, 0x91ae, 0x9ae0, 0xa569, 0xb0e9, 0xbcf4, 0xc91b, 0xd4ee, 0xdfff, 0xe9e8, 0xf24e, 0xf8e2, 0xfd67, 0xffb5, 0xffb5, 0xfd67, 0xf8e2, 0xf24e, 0xe9e8, 0xdfff, 0xd4ee, 0xc91b, 0xbcf4, 0xb0e9, 0xa569, 0x9ae0, 0x91ae, 0x8a28, 0x8495, 0x8128, 0x8000, 0x8128, 0x8495, 0x8a28, 0x91ae, 0x9ae0, 0xa569, 0xb0e9, 0xbcf4, 0xc91b, 0xd4ee, 0xdfff, 0xe9e8, 0xf24e, 0xf8e2, 0xfd67, 0xffb5, 0xffff, 0xffb5, 0xfd67, 0xf8e2, 0xf24e, 0xe9e8, 0xdfff, 0xd4ee, 0xc91b, 0xbcf4, 0xb0e9, 0xa569, 0x9ae0, 0x91ae, 0x8a28, 0x8495, 0x8128, 0x8000, 0x8128, 0x8495, 0x8a28, 0x91ae, 0x9ae0, 0xa569, 0xb0e9, 0xbcf4, 0xc91b, 0xd4ee, 0xdfff, 0xe9e8, 0xf24e, 0xf8e2, 0xfd67, 0xffb5, 0xffb5, 0xfd67, 0xf8e2, 0xf24e, 0xe9e8, 0xdfff, 0xd4ee, 0xc91b, 0xbcf4, 0xb0e9, 0xa569, 0x9ae0, 0x91ae, 0x8a28, 0x8495, 0x8128]
 
 
-def initialize_pwm():
+def initialize_i2c_devices():
     # create the I2C bus interface
     i2c = busio.I2C(board.SCL, board.SDA)
 
-    # create a simple PCA9685 class instance called pwm
+    # create a PCA9685 object and set the frequency for LED control
     pwm = PCA9685(i2c)
-
-    # set the PWM frequency to 1KHz
     pwm.frequency = 1000
-    
-    return pwm
+
+    # create a DS3231 object
+    rtc = DS3231(i2c)
+
+    # set example time of Friday, December 19, 2025 14:36:00 Eastern Standard Time
+    # tm_year=2025, tm_mon=12, tm_mday=19, tm_hour=15, tm_min=44, tm_sec=00, tm_wday=4, tm_yday=335, tm_isdst=-1
+    rtc.datetime = time.struct_time((2025,12,19,14,36,0,4,353,-1))
+
+    return pwm, rtc
 
 
 def initialize_input_bus(input_pins):
@@ -63,14 +69,14 @@ def startup_blink(pwm):
         pwm.channels[1].duty_cycle = 0xffff
         pwm.channels[2].duty_cycle = 0xffff
         # hold white for 0.25 second
-        sleep(0.25)
+        time.sleep(0.25)
 
         # set all channels off
         pwm.channels[0].duty_cycle = 0x0000
         pwm.channels[1].duty_cycle = 0x0000
         pwm.channels[2].duty_cycle = 0x0000
         # hold off for 0.25 second
-        sleep(0.25)
+        time.sleep(0.25)
 
 
 def sequence_solid(pwm, color_list, cycle_time, dimmer):
@@ -160,9 +166,9 @@ def sequence_wigwag(pwm, color_list, cycle_time, dimmer):
         for color in range(num_colors):
             for i in range(10):
                 # assign lookup table value to color channels minus the scaled dimmer value
-                pwm.channels[0].duty_cycle = int((color_list[color][0] * int(wigwag[i] - ((wigwag[i]/0xffff) * dimmer))))
-                pwm.channels[1].duty_cycle = int((color_list[color][1] * int(wigwag[i] - ((wigwag[i]/0xffff) * dimmer))))
-                pwm.channels[2].duty_cycle = int((color_list[color][2] * int(wigwag[i] - ((wigwag[i]/0xffff) * dimmer))))
+                pwm.channels[0].duty_cycle = int((color_list[color][0] * int(wigwag[i] - dimmer)))
+                pwm.channels[1].duty_cycle = int((color_list[color][1] * int(wigwag[i] - dimmer)))
+                pwm.channels[2].duty_cycle = int((color_list[color][2] * int(wigwag[i] - dimmer)))
 
                 # check for raised flag during the step_time timeout
                 if stop_flag.wait(timeout=step_time):
@@ -189,7 +195,7 @@ def sequence_sos(pwm, color_list, cycle_time, dimmer):
                     return None
 
 
-def sequence_wiggle(pwm, color_list, cycle_time, dimmer):
+def sequence_breathe(pwm, color_list, cycle_time, dimmer):
     # create smaller time increment for loop
     step_time = cycle_time / 100
 
@@ -200,9 +206,9 @@ def sequence_wiggle(pwm, color_list, cycle_time, dimmer):
         for color in range(num_colors):
             for i in range(100):
                 # assign lookup table value to color channels minus the scaled dimmer value
-                pwm.channels[0].duty_cycle = int((color_list[color][0] * int(wiggle[i] - ((wiggle[i]/0xffff) * dimmer))))
-                pwm.channels[1].duty_cycle = int((color_list[color][1] * int(wiggle[i] - ((wiggle[i]/0xffff) * dimmer))))
-                pwm.channels[2].duty_cycle = int((color_list[color][2] * int(wiggle[i] - ((wiggle[i]/0xffff) * dimmer))))
+                pwm.channels[0].duty_cycle = int((color_list[color][0] * int(breathe[i] - ((breathe[i]/0xffff) * dimmer))))
+                pwm.channels[1].duty_cycle = int((color_list[color][1] * int(breathe[i] - ((breathe[i]/0xffff) * dimmer))))
+                pwm.channels[2].duty_cycle = int((color_list[color][2] * int(breathe[i] - ((breathe[i]/0xffff) * dimmer))))
 
                 # check for raised flag during the step_time timeout
                 if stop_flag.wait(timeout=step_time):
@@ -211,15 +217,17 @@ def sequence_wiggle(pwm, color_list, cycle_time, dimmer):
 
 def crossfade(pwm, color_list, cycle_time, dimmer):
     # create smaller time increment for loop and set increment count
-    if cycle_time == 1:
-        step_time = cycle_time / 60
-        inc = 15
-    elif cycle_time == 2:
-        step_time = cycle_time / 200
-        inc = 50
-    else:
-        step_time = cycle_time / 400
-        inc = 100
+    step_time = 0.025
+
+    increment_dict = {
+        1 : 10,
+        2 : 20,
+        3 : 30,
+        4 : 40,
+        5 : 50
+    }
+    
+    inc = increment_dict[cycle_time]
 
     # get color_list length
     num_colors = len(color_list)
@@ -259,31 +267,100 @@ def crossfade(pwm, color_list, cycle_time, dimmer):
                         return None
 
 
+def crossfade_hold(pwm, color_list, cycle_time, dimmer):
+    # create smaller time increment for loop and set increment count
+    step_time = 0.015
+
+    increment_dict = {
+        1 : 10,
+        2 : 20,
+        3 : 30,
+        4 : 40,
+        5 : 50
+    }
+
+    inc = increment_dict[cycle_time]
+
+    hold_time = (2 * step_time * inc) / 5
+
+    # get color_list length
+    num_colors = len(color_list)
+
+    while True:
+        for color in range(len(color_list)):
+            # get current color and next color for transition
+            if color == num_colors - 1:
+                current_color = color_list[color]
+                next_color = color_list[0]
+                color_difference = [a - b for a, b in zip(next_color, current_color)]
+
+                # hold color for hold_time then crossfade
+                pwm.channels[0].duty_cycle = int(current_color[0] * (0xffff - dimmer))
+                pwm.channels[1].duty_cycle = int(current_color[1] * (0xffff - dimmer))
+                pwm.channels[2].duty_cycle = int(current_color[2] * (0xffff - dimmer))
+                
+                # check for raised flag during the hold_time timeout
+                if stop_flag.wait(timeout=hold_time):
+                    return None
+
+                for i in range(1, inc + 1):
+                    # assign current color values with progressive difference from next color
+                    pwm.channels[0].duty_cycle = int(current_color[0] * (0xffff - dimmer)) + int((color_difference[0] * i * (0xffff - dimmer)) / (inc))
+                    pwm.channels[1].duty_cycle = int(current_color[1] * (0xffff - dimmer)) + int((color_difference[1] * i * (0xffff - dimmer)) / (inc))
+                    pwm.channels[2].duty_cycle = int(current_color[2] * (0xffff - dimmer)) + int((color_difference[2] * i * (0xffff - dimmer)) / (inc))
+
+                    # check for raised flag during the step_time timeout
+                    if stop_flag.wait(timeout=step_time):
+                        return None
+
+            # get current color and next color for transition
+            else:
+                current_color = color_list[color]
+                next_color = color_list[color + 1]
+                color_difference = [a - b for a, b in zip(next_color, current_color)]
+
+                # hold color for hold_time then crossfade
+                pwm.channels[0].duty_cycle = int(current_color[0] * (0xffff - dimmer))
+                pwm.channels[1].duty_cycle = int(current_color[1] * (0xffff - dimmer))
+                pwm.channels[2].duty_cycle = int(current_color[2] * (0xffff - dimmer))
+
+                # check for raised flag during the hold_time timeout
+                if stop_flag.wait(timeout=hold_time):
+                    return None
+
+                for i in range(1, inc + 1):
+                    # assign current color values with progressive difference from next color
+                    pwm.channels[0].duty_cycle = int(current_color[0] * (0xffff - dimmer)) + int((color_difference[0] * i * (0xffff - dimmer)) / (inc))
+                    pwm.channels[1].duty_cycle = int(current_color[1] * (0xffff - dimmer)) + int((color_difference[1] * i * (0xffff - dimmer)) / (inc))
+                    pwm.channels[2].duty_cycle = int(current_color[2] * (0xffff - dimmer)) + int((color_difference[2] * i * (0xffff - dimmer)) / (inc))
+
+                    # check for raised flag during the step_time timeout
+                    if stop_flag.wait(timeout=step_time):
+                        return None
+
+
 def main():
     ################## user-defined variables ##################
 
     # choose lighting speed (1 = slowest, 5 = fastest)
-    speed = 1
+    speed = 4
 
     # choose brightness (1 = lowest, 5 = brightest)
     brightness = 5
 
     # create ordered list of color values
     color_list = [[1, 0, 0],
-                  [1, 0.3, 0],
-                  [1, 1, 0],
                   [0, 1, 0],
-                  [0, 0, 1],
-                  [1, 0, 1]]
+                  [0, 0, 1]]
 
 
     ################ initialization and startup ################
 
-    # initialize PWM bus for color channels
-    pwm = initialize_pwm()
+    # create pwm object for light control and rtc object for timing
+    pwm, rtc = initialize_i2c_devices()
 
     # provide input pins to use
-    input_pins = [22, 10, 19, 11, 5, 6, 13, 26]
+    input_pins = [22, 10, 9, 11, 5, 6, 13, 26]
     
     # initialize input bus for hardware inputs
     inputs = initialize_input_bus(input_pins)
@@ -304,7 +381,7 @@ def main():
     ####### start lighting thread and read button inputs #######
 
     # set lighting function and arguments for lighting thread
-    light_thread = Thread(target=sequence_wiggle, args=(pwm, color_list, cycle_time, dimmer))
+    light_thread = Thread(target=sequence_wigwag, args=(pwm, color_list, cycle_time, dimmer))
     
     # start thread in background
     light_thread.start()
@@ -316,10 +393,11 @@ def main():
             stop_flag.set()
             break
         else:
-            sleep(0.01)
+            time.sleep(0.01)
 
     # gracefully terminate thread
     light_thread.join()
+    stop_flag.clear()
 
 
 if __name__ == "__main__":
