@@ -19,5 +19,6 @@ $ python -m venv venv
 (venv) /project $ pip install python-time
 (venv) /project $ pip install adafruit-blinka
 (venv) /project $ pip install adafruit-circuitpython-pca9685
+(venv) /project $ pip install adafruit-circuitpython-ds3231
 (venv) /project $ pip install lgpio
 (venv) /project $ pip install Flask
