@@ -1,1 +1,0 @@
-This directory will contain files for the web app for the Car Wash Controller.
