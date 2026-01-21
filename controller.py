@@ -7,6 +7,9 @@ import threading
 from adafruit_ds3231 import DS3231
 from adafruit_pca9685 import PCA9685
 
+
+######################## some variables ########################
+
 # thread stop flag
 stop_flag = threading.Event()
 
@@ -63,9 +66,9 @@ breathe = [0x8000, 0x8128, 0x8495, 0x8a28, 0x91ae, 0x9ae0, 0xa569, 0xb0e9, 0xbcf
            0xdfff, 0xe9e8, 0xf24e, 0xf8e2, 0xfd67, 0xffb5, 0xffb5, 0xfd67, 0xf8e2, 0xf24e, 0xe9e8, 0xdfff, 0xd4ee,
            0xc91b, 0xbcf4, 0xb0e9, 0xa569, 0x9ae0, 0x91ae, 0x8a28, 0x8495, 0x8128]
 
-    ###################### init functions ######################
 
-# do not change
+######################## init functions ########################
+
 def initialize_i2c_devices():
     # create the I2C bus interface
     i2c = busio.I2C(board.SCL, board.SDA)
@@ -80,7 +83,6 @@ def initialize_i2c_devices():
     return pwm, rtc
 
 
-# do not change
 def load_database():
     # connect to sqlite database and get cursor
     conn = sqlite3.connect('cwc.db')
@@ -89,7 +91,6 @@ def load_database():
     return cursor
 
 
-# do not change
 def initialize_input_bus(input_pins):
     # initialize input_pins as gpiozero DigitalInputDevice class instances
     inputs = [gpiozero.DigitalInputDevice(pin=input_pins[0], pull_up=True),
@@ -104,7 +105,6 @@ def initialize_input_bus(input_pins):
     return inputs
 
 
-# do not change
 def read_input_bus(inputs):
     # gather states from inputs global variable
     states = [i.value for i in inputs]
@@ -112,7 +112,6 @@ def read_input_bus(inputs):
     return states
 
 
-# do not change
 def startup_blink(pwm):
     for i in range(3):
         # set all channels to max (white)
@@ -130,10 +129,10 @@ def startup_blink(pwm):
         time.sleep(0.25)
 
 
-# do not change
 def read_default_scene(cursor):
     # read default scene info from cwc.db
-    cursor.execute("SELECT behavior, daytime_brightness, nighttime_brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 FROM scenes WHERE scene_id = 1")
+    cursor.execute(
+        "SELECT behavior, daytime_brightness, nighttime_brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 FROM scenes WHERE scene_id = 1")
 
     # get full default scene row as tuple (what the hell is a tuple)
     row = cursor.fetchone()
@@ -155,7 +154,6 @@ def read_default_scene(cursor):
     # if all colors were null, add white to the list
     if all(color_id is None for color_id in color_ids):
         color_ids = [1]
-        
 
     ####################### from ChatGPT #######################
     # Build placeholders for the IN clause
@@ -173,7 +171,6 @@ def read_default_scene(cursor):
     # Final ordered list of hex values
     colors = [id_to_hex.get(color_id) for color_id in color_ids]
     ############################################################
-
 
     # convert hex string into floats
     color_list = []
@@ -212,10 +209,8 @@ def read_default_scene(cursor):
     return function, color_list, speed, daytime_brightness, nighttime_brightness
 
 
-    #################### lighting functions ####################
+###################### lighting functions ######################
 
-
-# do not change
 def sequence_solid(pwm, color_list, cycle_time, dimmer):
     # get color_list length
     num_colors = len(color_list)
@@ -232,7 +227,6 @@ def sequence_solid(pwm, color_list, cycle_time, dimmer):
                 return None
 
 
-# do not change
 def sequence_fade(pwm, color_list, cycle_time, dimmer):
     # create smaller time increment for loop
     step_time = cycle_time / 100
@@ -256,7 +250,6 @@ def sequence_fade(pwm, color_list, cycle_time, dimmer):
                     return None
 
 
-# do not change
 def sequence_decay(pwm, color_list, cycle_time, dimmer):
     # create smaller time increment for loop
     step_time = cycle_time / 100
@@ -280,7 +273,6 @@ def sequence_decay(pwm, color_list, cycle_time, dimmer):
                     return None
 
 
-# do not change
 def sequence_morse(pwm, color_list, cycle_time, dimmer):
     # create smaller time increment for loop
     step_time = cycle_time / 100
@@ -304,7 +296,6 @@ def sequence_morse(pwm, color_list, cycle_time, dimmer):
                     return None
 
 
-# do not change
 def sequence_wigwag(pwm, color_list, cycle_time, dimmer):
     # create smaller time increment for loop
     step_time = cycle_time / 10
@@ -325,7 +316,6 @@ def sequence_wigwag(pwm, color_list, cycle_time, dimmer):
                     return None
 
 
-# do not change
 def sequence_sos(pwm, color_list, cycle_time, dimmer):
     # create smaller time increment for loop
     step_time = cycle_time / 100
@@ -346,7 +336,6 @@ def sequence_sos(pwm, color_list, cycle_time, dimmer):
                     return None
 
 
-# do not change
 def sequence_breathe(pwm, color_list, cycle_time, dimmer):
     # create smaller time increment for loop
     step_time = cycle_time / 100
@@ -370,7 +359,6 @@ def sequence_breathe(pwm, color_list, cycle_time, dimmer):
                     return None
 
 
-# do not change
 def crossfade(pwm, color_list, cycle_time, dimmer):
     # create smaller time increment for loop and set increment count
     step_time = 0.025
@@ -429,7 +417,6 @@ def crossfade(pwm, color_list, cycle_time, dimmer):
                         return None
 
 
-# do not change
 def crossfade_hold(pwm, color_list, cycle_time, dimmer):
     # create smaller time increment for loop and set increment count
     step_time = 0.015
@@ -508,6 +495,8 @@ def crossfade_hold(pwm, color_list, cycle_time, dimmer):
                         return None
 
 
+############################# main #############################
+
 def main():
     ################ initialization and startup ################
 
@@ -526,7 +515,6 @@ def main():
     # blink white 3 times for startup
     startup_blink(pwm)
 
-    ############################################################
     ############## get variables for light thread ##############
 
     # read default scene from database
@@ -539,7 +527,6 @@ def main():
     day_dimmer = int(0x3333 * (5 - daytime_brightness))
     night_dimmer = int(0x3333 * (5 - nighttime_brightness))
 
-    ############################################################
     ####### start lighting thread and read button inputs #######
 
     # set lighting function and arguments for lighting thread
@@ -561,7 +548,6 @@ def main():
     light_thread.join()
     stop_flag.clear()
 
-    ############################################################
 
 if __name__ == "__main__":
     main()
