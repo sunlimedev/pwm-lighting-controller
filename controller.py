@@ -92,14 +92,14 @@ def load_database():
 # do not change
 def initialize_input_bus(input_pins):
     # initialize input_pins as gpiozero DigitalInputDevice class instances
-    inputs = [gpiozero.DigitalInputDevice(pin=input_pins[0], pull_up=False),
-              gpiozero.DigitalInputDevice(pin=input_pins[1], pull_up=False),
-              gpiozero.DigitalInputDevice(pin=input_pins[2], pull_up=False),
-              gpiozero.DigitalInputDevice(pin=input_pins[3], pull_up=False),
-              gpiozero.DigitalInputDevice(pin=input_pins[4], pull_up=False),
-              gpiozero.DigitalInputDevice(pin=input_pins[5], pull_up=False),
-              gpiozero.DigitalInputDevice(pin=input_pins[6], pull_up=False),
-              gpiozero.DigitalInputDevice(pin=input_pins[7], pull_up=False)]
+    inputs = [gpiozero.DigitalInputDevice(pin=input_pins[0], pull_up=True),
+              gpiozero.DigitalInputDevice(pin=input_pins[1], pull_up=True),
+              gpiozero.DigitalInputDevice(pin=input_pins[2], pull_up=True),
+              gpiozero.DigitalInputDevice(pin=input_pins[3], pull_up=True),
+              gpiozero.DigitalInputDevice(pin=input_pins[4], pull_up=True),
+              gpiozero.DigitalInputDevice(pin=input_pins[5], pull_up=True),
+              gpiozero.DigitalInputDevice(pin=input_pins[6], pull_up=True),
+              gpiozero.DigitalInputDevice(pin=input_pins[7], pull_up=True)]
 
     return inputs
 
@@ -107,7 +107,7 @@ def initialize_input_bus(input_pins):
 # do not change
 def read_input_bus(inputs):
     # gather states from inputs global variable
-    states = [i.is_held for i in inputs]
+    states = [i.value for i in inputs]
 
     return states
 
@@ -145,7 +145,7 @@ def read_default_scene(cursor):
     function = globals().get(behavior)
 
     # put all color_id keys into a list
-    color_ids = [None, None, None, None, None, None, None, None, None, None]
+    color_ids = [color0, color1, color2, color3, color4, color5, color6, color7, color8, color9]
 
     # remove unused colors starting from last
     for i in range(9, -1, -1):
@@ -154,7 +154,8 @@ def read_default_scene(cursor):
 
     # if all colors were null, add white to the list
     if all(color_id is None for color_id in color_ids):
-        color_ids = [63]
+        color_ids = [1]
+        
 
     ####################### from ChatGPT #######################
     # Build placeholders for the IN clause
@@ -172,6 +173,7 @@ def read_default_scene(cursor):
     # Final ordered list of hex values
     colors = [id_to_hex.get(color_id) for color_id in color_ids]
     ############################################################
+
 
     # convert hex string into floats
     color_list = []
