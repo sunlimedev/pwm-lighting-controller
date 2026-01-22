@@ -77,7 +77,7 @@ def startup_blink(pwm):
 
 
 def read_default_scene(cursor):
-    # navigate to default scene info in lightinglighting.db
+    # navigate to default scene info in lighting.db
     cursor.execute(
         "SELECT behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 FROM scenes WHERE scene_id = 1")
 
@@ -166,7 +166,7 @@ def read_connection_scene(cursor, connection):
     # set passed connection integer as connection_id for table
     connection_id = connection
 
-    # navigate to scene used in connection in lightinglighting.db
+    # navigate to scene used in connection in lighting.db
     cursor.execute("SELECT scene FROM connections WHERE connection_id = ?", (connection_id,))
 
     # get connection scene row (more tuple nonsense)
@@ -179,7 +179,7 @@ def read_connection_scene(cursor, connection):
     if scene_id is None:
         scene_id = 1
 
-    # read connection scene info from lightinglighting.db
+    # read connection scene info from lighting.db
     cursor.execute(
         "SELECT behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 FROM scenes WHERE scene_id = ?",
         (scene_id,))
@@ -702,4 +702,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     main()
