@@ -79,6 +79,8 @@ def startup_blink(pwm):
     return
 
 
+######################## data functions ########################
+
 def read_default_scene(cursor):
     # navigate to default scene info in lighting.db
     cursor.execute(
@@ -723,4 +725,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     main()
