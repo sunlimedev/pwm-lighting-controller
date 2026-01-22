@@ -10,7 +10,7 @@ from adafruit_pca9685 import PCA9685
 
 ######################## some variables ########################
 
-# thread stop flag
+# thread flag
 stop_flag = threading.Event()
 
 # lists for lighting functions
@@ -91,7 +91,10 @@ def load_database():
     return cursor
 
 
-def initialize_input_bus(input_pins):
+def initialize_input_bus():
+    # provide input pins to use
+    input_pins = [22, 10, 9, 11, 5, 6, 13, 26]
+
     # initialize input_pins as gpiozero DigitalInputDevice class instances
     inputs = [gpiozero.DigitalInputDevice(pin=input_pins[0], pull_up=True),
               gpiozero.DigitalInputDevice(pin=input_pins[1], pull_up=True),
@@ -131,14 +134,13 @@ def startup_blink(pwm):
 
 def read_default_scene(cursor):
     # read default scene info from cwc.db
-    cursor.execute(
-        "SELECT behavior, daytime_brightness, nighttime_brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 FROM scenes WHERE scene_id = 1")
+    cursor.execute("SELECT behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 FROM scenes WHERE scene_id = 1")
 
     # get full default scene row as tuple (what the hell is a tuple)
     row = cursor.fetchone()
 
     # store default scene table data
-    behavior, daytime_brightness, nighttime_brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 = row
+    behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 = row
 
     # turn behavior string into callable lighting function
     function = globals().get(behavior)
@@ -183,7 +185,7 @@ def read_default_scene(cursor):
         green = color[2:4]
         blue = color[4:]
 
-        # convert string to int
+        # convert string to int (hex format)
         red = int(red, 16)
         green = int(green, 16)
         blue = int(blue, 16)
@@ -206,7 +208,114 @@ def read_default_scene(cursor):
         # move rgb values to color_list list
         color_list.append(rgb)
 
-    return function, color_list, speed, daytime_brightness, nighttime_brightness
+    # derive cycle time from speed
+    cycle_time = 6 - speed
+
+    # derive day dimmer from brightness (1 = 10%, 10 = 100%)
+    dimmer = int(0x3333 * (5 - brightness))
+
+    return function, color_list, cycle_time, dimmer
+
+
+def read_connection_scene(cursor, connection):
+    # set passed connection integer as connection_id for table
+    connection_id = connection
+
+    # read scene integer for connection from cwc.db
+    cursor.execute("SELECT scene FROM connections WHERE connection_id = ?", (connection_id,))
+
+    # get connection scene row
+    row = cursor.fetchone()
+
+    # get scene_id from pulled row
+    scene_id = row[0]
+
+    # if scene_id is null, set to 1
+    if scene_id is None:
+        scene_id = 1
+
+    # read connection scene info from cwc.db
+    cursor.execute("SELECT behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 FROM scenes WHERE scene_id = ?", (scene_id,))
+
+    # get full default scene row as tuple (what the hell is a tuple)
+    row = cursor.fetchone()
+
+    # store default scene table data
+    behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 = row
+
+    # turn behavior string into callable lighting function
+    function = globals().get(behavior)
+
+    # put all color_id keys into a list
+    color_ids = [color0, color1, color2, color3, color4, color5, color6, color7, color8, color9]
+
+    # remove unused colors starting from last
+    for i in range(9, -1, -1):
+        if color_ids[i] is None:
+            del color_ids[i]
+
+    # if all colors were null, add white to the list
+    if all(color_id is None for color_id in color_ids):
+        color_ids = [1]
+
+    ####################### from ChatGPT #######################
+    # Build placeholders for the IN clause
+    placeholders = ",".join("?" for _ in color_ids)
+
+    # Query hex values for all needed colors at once
+    query = f"""SELECT color_id, hexval FROM colors WHERE color_id IN ({placeholders})"""
+
+    cursor.execute(query, color_ids)
+    rows = cursor.fetchall()
+
+    # Map ids to hex strings
+    id_to_hex = {row[0]: row[1] for row in rows}
+
+    # Final ordered list of hex values
+    colors = [id_to_hex.get(color_id) for color_id in color_ids]
+    ############################################################
+
+    # convert hex string into floats
+    color_list = []
+    for color in colors:
+        # create a list for the individual red, green, and blue values
+        rgb = []
+
+        # extract each color from the hex value string
+        red = color[:2]
+        green = color[2:4]
+        blue = color[4:]
+
+        # convert string to int (hex format)
+        red = int(red, 16)
+        green = int(green, 16)
+        blue = int(blue, 16)
+
+        # convert int to float
+        red = red / 255.0
+        green = green / 255.0
+        blue = blue / 255.0
+
+        # round float to nearest five hundredth so we have less complex real-time fp calculations
+        red = round(red / 0.05) * 0.05
+        green = round(green / 0.05) * 0.05
+        blue = round(blue / 0.05) * 0.05
+
+        # append rgb values to rgb list
+        rgb.append(red)
+        rgb.append(green)
+        rgb.append(blue)
+
+        # move rgb values to color_list list
+        color_list.append(rgb)
+
+    # derive cycle time from speed
+    cycle_time = 6 - speed
+
+    # derive day dimmer from brightness (1 = 10%, 10 = 100%)
+    dimmer = int(0x3333 * (5 - brightness))
+
+    return function, color_list, cycle_time, dimmer
 
 
 ###################### lighting functions ######################
@@ -503,11 +612,8 @@ def main():
     # create pwm object for light control
     pwm, rtc = initialize_i2c_devices()
 
-    # provide input pins to use
-    input_pins = [22, 10, 9, 11, 5, 6, 13, 26]
-
     # initialize input bus for hardware inputs
-    inputs = initialize_input_bus(input_pins)
+    inputs = initialize_input_bus()
 
     # load sqlite database for program
     cursor = load_database()
@@ -515,38 +621,58 @@ def main():
     # blink white 3 times for startup
     startup_blink(pwm)
 
-    ############## get variables for light thread ##############
-
     # read default scene from database
-    function, color_list, speed, daytime_brightness, nighttime_brightness = read_default_scene(cursor)
+    function, color_list, cycle_time, dimmer = read_default_scene(cursor)
 
-    # derive cycle time from speed
-    cycle_time = 6 - speed
-
-    # derive day dimmer from brightness (1 = 10%, 10 = 100%)
-    day_dimmer = int(0x3333 * (5 - daytime_brightness))
-    night_dimmer = int(0x3333 * (5 - nighttime_brightness))
-
-    ####### start lighting thread and read button inputs #######
+    ########## start lighting thread and check inputs ##########
 
     # set lighting function and arguments for lighting thread
-    light_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, day_dimmer))
+    light_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
 
     # start thread in background
     light_thread.start()
 
-    # run thread until input[0] is true
+    # check for connections to become active
     while True:
         states = read_input_bus(inputs)
-        if states[0] == True:
+        if any(states):
+            # element of states that is True is active connection
+            connection = states.index(True)
+
+            # stop light thread to run connection thread
             stop_flag.set()
-            break
+            light_thread.join()
+            stop_flag.clear()
+
+            # get connection scene info and run thread (+1 for sqlite 1-indexing)
+            conn_function, conn_color_list, conn_cycle_time, conn_dimmer = read_connection_scene(cursor, connection + 1)
+            light_thread = threading.Thread(target=conn_function, args=(pwm, conn_color_list, conn_cycle_time, conn_dimmer))
+            light_thread.start()
+
+            while True:
+                # check connections while running light_thread
+                states = read_input_bus(inputs)
+                if any(states):
+                    temp = states.index(True)
+                else:
+                    break
+
+                if temp == connection:
+                    time.sleep(0.01)
+                    continue
+                elif temp != connection:
+                    # get new connection value and stop light thread
+                    connection = temp
+                    stop_flag.set()
+                    light_thread.join()
+                    stop_flag.clear()
+
+                    # restart light thread with new scene info
+                    conn_function, conn_color_list, conn_cycle_time, conn_dimmer = read_connection_scene(cursor, connection + 1)
+                    light_thread = threading.Thread(target=conn_function, args=(pwm, conn_color_list, conn_cycle_time, conn_dimmer))
+                    light_thread.start()
         else:
             time.sleep(0.01)
-
-    # gracefully terminate thread
-    light_thread.join()
-    stop_flag.clear()
 
 
 if __name__ == "__main__":
