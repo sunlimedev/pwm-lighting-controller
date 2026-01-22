@@ -655,6 +655,13 @@ def main():
                 if any(states):
                     temp = states.index(True)
                 else:
+                    stop_flag.set()
+                    light_thread.join()
+                    stop_flag.clear()
+                    
+                    function, color_list, cycle_time, dimmer = read_default_scene(cursor)
+                    light_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
+                    light_thread.start()
                     break
 
                 if temp == connection:
