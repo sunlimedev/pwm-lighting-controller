@@ -3,9 +3,9 @@ import board
 import busio
 import sqlite3
 import gpiozero
-import threading
 import datetime
-from adafruit_pca9685 import PCA9685
+import threading
+import adafruit_pca9685
 
 # thread global flag
 stop_flag = threading.Event()
@@ -18,7 +18,7 @@ def initialize_i2c_devices():
     i2c = busio.I2C(board.SCL, board.SDA)
 
     # create a PCA9685 object and set the frequency for LED control
-    pwm = PCA9685(i2c)
+    pwm = adafruit_pca9685.PCA9685(i2c)
     pwm.frequency = 1000
 
     return pwm
@@ -118,196 +118,7 @@ def read_input_bus(inputs):
     return states
 
 
-def read_default_scene(cursor):
-    # navigate to default scene info in lighting.db
-    cursor.execute(
-        "SELECT behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 FROM scenes WHERE scene_id = 1")
-
-    # get full default scene row as tuple (what the hell is a tuple)
-    row = cursor.fetchone()
-
-    # move row tuple to individual variables
-    behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 = row
-
-    # turn behavior string into callable lighting function
-    function = globals().get(behavior)
-
-    # put all color_id keys into a list
-    color_ids = [color0, color1, color2, color3, color4, color5, color6, color7, color8, color9]
-
-    # remove unused colors starting from last
-    for i in range(9, -1, -1):
-        if color_ids[i] is None:
-            del color_ids[i]
-
-    # if all colors were null, add white to the list so things don't break
-    if all(color_id is None for color_id in color_ids):
-        color_ids = [1]
-
-    ####################### from ChatGPT #######################
-    # Build placeholders for the IN clause
-    placeholders = ",".join("?" for _ in color_ids)
-
-    # Query hex values for all needed colors at once
-    query = f"""SELECT color_id, hexval FROM colors WHERE color_id IN ({placeholders})"""
-
-    cursor.execute(query, color_ids)
-    rows = cursor.fetchall()
-
-    # Map ids to hex strings
-    id_to_hex = {row[0]: row[1] for row in rows}
-
-    # Final ordered list of hex values
-    colors = [id_to_hex.get(color_id) for color_id in color_ids]
-    ############################################################
-
-    # convert hex string into floats
-    color_list = []
-    for color in colors:
-        # create a list for the individual red, green, and blue values
-        rgb = []
-
-        # extract each color from the hex value string
-        red = color[:2]
-        green = color[2:4]
-        blue = color[4:]
-
-        # convert string to int (hex format)
-        red = int(red, 16)
-        green = int(green, 16)
-        blue = int(blue, 16)
-
-        # convert int to float
-        red = red / 255.0
-        green = green / 255.0
-        blue = blue / 255.0
-
-        # round float to nearest five hundredth so we have less complex real-time fp calculations
-        red = round(red / 0.05) * 0.05
-        green = round(green / 0.05) * 0.05
-        blue = round(blue / 0.05) * 0.05
-
-        # append rgb values to rgb list
-        rgb.append(red)
-        rgb.append(green)
-        rgb.append(blue)
-
-        # move rgb values to color_list list
-        color_list.append(rgb)
-
-    # derive cycle time from speed
-    cycle_time = 6 - speed
-
-    # derive dimmer from brightness (1 = 10%, 10 = 100%)
-    dimmer = int(0x3333 * (5 - brightness))
-
-    return function, color_list, cycle_time, dimmer
-
-
-def read_connection_scene(cursor, connection):
-    # set passed connection integer as connection_id for table
-    connection_id = connection
-
-    # navigate to scene used in connection in lighting.db
-    cursor.execute("SELECT scene FROM connections WHERE connection_id = ?", (connection_id,))
-
-    # get connection scene row (more tuple nonsense)
-    row = cursor.fetchone()
-
-    # get scene_id from pulled row
-    scene_id = row[0]
-
-    # if scene_id is null, set to 1 (so nothing breaks)
-    if scene_id is None:
-        scene_id = 1
-
-    # read connection scene info from lighting.db
-    cursor.execute(
-        "SELECT behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 FROM scenes WHERE scene_id = ?",
-        (scene_id,))
-
-    # get full default scene row as tuple (tuples aren't real, they can't hurt you)
-    row = cursor.fetchone()
-
-    # store connection scene table data in variables
-    behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 = row
-
-    # turn behavior string into callable lighting function
-    function = globals().get(behavior)
-
-    # put all color_id keys into a list
-    color_ids = [color0, color1, color2, color3, color4, color5, color6, color7, color8, color9]
-
-    # remove unused colors starting from last
-    for i in range(9, -1, -1):
-        if color_ids[i] is None:
-            del color_ids[i]
-
-    # if all colors were null, add white to the list (keep things from breaking)
-    if all(color_id is None for color_id in color_ids):
-        color_ids = [1]
-
-    ####################### from ChatGPT #######################
-    # Build placeholders for the IN clause
-    placeholders = ",".join("?" for _ in color_ids)
-
-    # Query hex values for all needed colors at once
-    query = f"""SELECT color_id, hexval FROM colors WHERE color_id IN ({placeholders})"""
-
-    cursor.execute(query, color_ids)
-    rows = cursor.fetchall()
-
-    # Map ids to hex strings
-    id_to_hex = {row[0]: row[1] for row in rows}
-
-    # Final ordered list of hex values
-    colors = [id_to_hex.get(color_id) for color_id in color_ids]
-    ############################################################
-
-    # convert hex string into floats
-    color_list = []
-    for color in colors:
-        # create a list for the individual red, green, and blue values
-        rgb = []
-
-        # extract each color from the hex value string
-        red = color[:2]
-        green = color[2:4]
-        blue = color[4:]
-
-        # convert string to int (hex format)
-        red = int(red, 16)
-        green = int(green, 16)
-        blue = int(blue, 16)
-
-        # convert int to float
-        red = red / 255.0
-        green = green / 255.0
-        blue = blue / 255.0
-
-        # round float to nearest five hundredth so we have less complex real-time fp calculations
-        red = round(red / 0.05) * 0.05
-        green = round(green / 0.05) * 0.05
-        blue = round(blue / 0.05) * 0.05
-
-        # append rgb values to rgb list
-        rgb.append(red)
-        rgb.append(green)
-        rgb.append(blue)
-
-        # move rgb values to color_list list
-        color_list.append(rgb)
-
-    # derive cycle time from speed
-    cycle_time = 6 - speed
-
-    # derive dimmer from brightness (1 = 10%, 10 = 100%)
-    dimmer = int(0x3333 * (5 - brightness))
-
-    return function, color_list, cycle_time, dimmer
-
-
-def read_event_scene(cursor, scene_id):
+def read_scene_info(cursor, scene_id):
     # read event scene info from lighting.db
     cursor.execute(
         "SELECT behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 FROM scenes WHERE scene_id = ?",
@@ -334,6 +145,18 @@ def read_event_scene(cursor, scene_id):
     if all(color_id is None for color_id in color_ids):
         color_ids = [1]
 
+    color_list = color_ids_to_list(cursor, color_ids)
+
+    # derive cycle time from speed
+    cycle_time = 6 - speed
+
+    # derive dimmer from brightness (1 = 10%, 10 = 100%)
+    dimmer = int(0x3333 * (5 - brightness))
+
+    return function, color_list, cycle_time, dimmer
+
+
+def color_ids_to_list(cursor, color_ids):
     ####################### from ChatGPT #######################
     # Build placeholders for the IN clause
     placeholders = ",".join("?" for _ in color_ids)
@@ -385,13 +208,24 @@ def read_event_scene(cursor, scene_id):
         # move rgb values to color_list list
         color_list.append(rgb)
 
-    # derive cycle time from speed
-    cycle_time = 6 - speed
+    return color_list
 
-    # derive dimmer from brightness (1 = 10%, 10 = 100%)
-    dimmer = int(0x3333 * (5 - brightness))
 
-    return function, color_list, cycle_time, dimmer
+def read_connection_scene(cursor, connection_id):
+    # navigate to scene used in connection in lighting.db
+    cursor.execute("SELECT scene FROM connections WHERE connection_id = ?", (connection_id,))
+
+    # get connection scene row (more tuple nonsense)
+    row = cursor.fetchone()
+
+    # get scene_id from pulled row
+    scene_id = row[0]
+
+    # if scene_id is null, set to 1 (so nothing breaks)
+    if scene_id is None:
+        scene_id = 1
+
+    return scene_id
 
 
 def read_events(cursor):
@@ -794,7 +628,7 @@ def main():
     input_bus_good(pwm)
 
     # read default scene info from scenes table
-    function, color_list, cycle_time, dimmer = read_default_scene(cursor)
+    function, color_list, cycle_time, dimmer = read_scene_info(cursor, scene_id = 1)
 
     # start lighting thread with default scene info
     lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
@@ -845,8 +679,11 @@ def main():
                 lighting_thread.join()
                 stop_flag.clear()
 
-                # get the scene info for the new active connection (+1 for sqlite 1-indexing)
-                function, color_list, cycle_time, dimmer = read_connection_scene(cursor, connection + 1)
+                # get the scene_id for the now active connection (+1 for sqlite 1-indexing)
+                scene_id = read_connection_scene(cursor, connection_id = connection + 1)
+
+                # get the scene info for the new active connection
+                function, color_list, cycle_time, dimmer = read_scene_info(cursor, scene_id)
 
                 # and restart the lighting thread
                 lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
@@ -902,7 +739,7 @@ def main():
                         stop_flag.clear()
 
                         # get the scene info for the event
-                        function, color_list, cycle_time, dimmer = read_event_scene(cursor, event_scenes[event_index])
+                        function, color_list, cycle_time, dimmer = read_scene_info(cursor, scene_id = event_scenes[event_index])
 
                         # and restart the lighting thread
                         lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
@@ -933,7 +770,7 @@ def main():
                         stop_flag.clear()
 
                         # get the default scene info
-                        function, color_list, cycle_time, dimmer = read_default_scene(cursor)
+                        function, color_list, cycle_time, dimmer = read_scene_info(cursor, scene_id = 1)
 
                         # and restart the lighting thread
                         lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
