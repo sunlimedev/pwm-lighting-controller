@@ -4,14 +4,14 @@ import busio
 import sqlite3
 import gpiozero
 import threading
-from adafruit_ds3231 import DS3231
+import datetime
 from adafruit_pca9685 import PCA9685
 
 # thread global flag
 stop_flag = threading.Event()
 
 
-######################## init functions ########################
+# ---------------------- init functions ------------------------
 
 def initialize_i2c_devices():
     # create the I2C bus interface
@@ -21,18 +21,55 @@ def initialize_i2c_devices():
     pwm = PCA9685(i2c)
     pwm.frequency = 1000
 
-    # create a DS3231 object
-    rtc = DS3231(i2c)
-
-    return pwm, rtc
+    return pwm
 
 
-def load_database():
+def i2c_good(pwm):
+    # blink red 3 times on startup
+    for i in range(3):
+        # set red color
+        pwm.channels[0].duty_cycle = 0xffff
+        pwm.channels[1].duty_cycle = 0x0000
+        pwm.channels[2].duty_cycle = 0x0000
+        # hold red for 0.5 second
+        time.sleep(0.5)
+
+        # set all channels off
+        pwm.channels[0].duty_cycle = 0x0000
+        pwm.channels[1].duty_cycle = 0x0000
+        pwm.channels[2].duty_cycle = 0x0000
+        # hold off for 0.25 second
+        time.sleep(0.25)
+
+    return
+
+
+def initialize_database():
     # connect to sqlite database and get cursor
     conn = sqlite3.connect('lighting.db')
     cursor = conn.cursor()
 
     return cursor
+
+
+def database_good(pwm):
+    # blink yellow 3 times on startup
+    for i in range(3):
+        # set yellow color
+        pwm.channels[0].duty_cycle = 0xffff
+        pwm.channels[1].duty_cycle = 0xffff
+        pwm.channels[2].duty_cycle = 0x0000
+        # hold yellow for 0.5 second
+        time.sleep(0.5)
+
+        # set all channels off
+        pwm.channels[0].duty_cycle = 0x0000
+        pwm.channels[1].duty_cycle = 0x0000
+        pwm.channels[2].duty_cycle = 0x0000
+        # hold off for 0.25 second
+        time.sleep(0.25)
+
+    return
 
 
 def initialize_input_bus():
@@ -52,34 +89,34 @@ def initialize_input_bus():
     return inputs
 
 
+def input_bus_good(pwm):
+    # blink green 3 times on startup
+    for i in range(3):
+        # set green color
+        pwm.channels[0].duty_cycle = 0x0000
+        pwm.channels[1].duty_cycle = 0xffff
+        pwm.channels[2].duty_cycle = 0x0000
+        # hold green for 0.5 second
+        time.sleep(0.5)
+
+        # set all channels off
+        pwm.channels[0].duty_cycle = 0x0000
+        pwm.channels[1].duty_cycle = 0x0000
+        pwm.channels[2].duty_cycle = 0x0000
+        # hold off for 0.5 second
+        time.sleep(0.25)
+
+    return
+
+
+# ---------------------- data functions ------------------------
+
 def read_input_bus(inputs):
     # gather states from inputs
     states = [i.value for i in inputs]
 
     return states
 
-
-def startup_blink(pwm):
-    # blink white 3 times on startup
-    for i in range(3):
-        # set all channels to max (white)
-        pwm.channels[0].duty_cycle = 0xffff
-        pwm.channels[1].duty_cycle = 0xffff
-        pwm.channels[2].duty_cycle = 0xffff
-        # hold white for 0.25 second
-        time.sleep(0.25)
-
-        # set all channels off
-        pwm.channels[0].duty_cycle = 0x0000
-        pwm.channels[1].duty_cycle = 0x0000
-        pwm.channels[2].duty_cycle = 0x0000
-        # hold off for 0.25 second
-        time.sleep(0.25)
-
-    return
-
-
-######################## data functions ########################
 
 def read_default_scene(cursor):
     # navigate to default scene info in lighting.db
@@ -270,28 +307,132 @@ def read_connection_scene(cursor, connection):
     return function, color_list, cycle_time, dimmer
 
 
-def set_rtc(rtc, year, month, day, hour, minute, weekday):
-    # placeholder second, weekday, yearday, DS3231 doesn't use DST
-    temp = time.struct_time((year, month, day, hour, minute, 0, 0, 0, -1))
+def read_event_scene(cursor, scene_id):
+    # read event scene info from lighting.db
+    cursor.execute(
+        "SELECT behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 FROM scenes WHERE scene_id = ?",
+        (scene_id,))
 
-    # allow python to fill in yearday bc it's a pain in the ass
-    epoch = time.mktime(temp)
-    computed = time.localtime(epoch)
+    # get full default scene row as tuple (tuples aren't real, they can't hurt you)
+    row = cursor.fetchone()
 
-    # use seconds = 0 again, computed yearday, and dst = 0
-    rtc.datetime = time.struct_time((year, month, day, hour, minute, 0, weekday, computed.tm_yday, -1))
+    # store event scene table data in variables
+    behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 = row
 
-    return
+    # turn behavior string into callable lighting function
+    function = globals().get(behavior)
+
+    # put all color_id keys into a list
+    color_ids = [color0, color1, color2, color3, color4, color5, color6, color7, color8, color9]
+
+    # remove unused colors starting from last
+    for i in range(9, -1, -1):
+        if color_ids[i] is None:
+            del color_ids[i]
+
+    # if all colors were null, add white to the list (keep things from breaking)
+    if all(color_id is None for color_id in color_ids):
+        color_ids = [1]
+
+    ####################### from ChatGPT #######################
+    # Build placeholders for the IN clause
+    placeholders = ",".join("?" for _ in color_ids)
+
+    # Query hex values for all needed colors at once
+    query = f"""SELECT color_id, hexval FROM colors WHERE color_id IN ({placeholders})"""
+
+    cursor.execute(query, color_ids)
+    rows = cursor.fetchall()
+
+    # Map ids to hex strings
+    id_to_hex = {row[0]: row[1] for row in rows}
+
+    # Final ordered list of hex values
+    colors = [id_to_hex.get(color_id) for color_id in color_ids]
+    ############################################################
+
+    # convert hex string into floats
+    color_list = []
+    for color in colors:
+        # create a list for the individual red, green, and blue values
+        rgb = []
+
+        # extract each color from the hex value string
+        red = color[:2]
+        green = color[2:4]
+        blue = color[4:]
+
+        # convert string to int (hex format)
+        red = int(red, 16)
+        green = int(green, 16)
+        blue = int(blue, 16)
+
+        # convert int to float
+        red = red / 255.0
+        green = green / 255.0
+        blue = blue / 255.0
+
+        # round float to nearest five hundredth so we have less complex real-time fp calculations
+        red = round(red / 0.05) * 0.05
+        green = round(green / 0.05) * 0.05
+        blue = round(blue / 0.05) * 0.05
+
+        # append rgb values to rgb list
+        rgb.append(red)
+        rgb.append(green)
+        rgb.append(blue)
+
+        # move rgb values to color_list list
+        color_list.append(rgb)
+
+    # derive cycle time from speed
+    cycle_time = 6 - speed
+
+    # derive dimmer from brightness (1 = 10%, 10 = 100%)
+    dimmer = int(0x3333 * (5 - brightness))
+
+    return function, color_list, cycle_time, dimmer
 
 
-def check_rtc(rtc):
-    # get time struct from rtc
-    now = rtc.datetime
+def read_events(cursor):
+    # read entire events table
+    cursor.execute("SELECT * FROM events")
 
-    return now.tm_month, now.tm_mday, now.tm_hour, now.tm_min
+    # pull the entire table as a list of tuples
+    events = cursor.fetchall()
+
+    # extract events table columns into their own lists
+    event_scenes = [events[1] for events in events]
+    event_dates = [events[2] for events in events]
+
+    return event_scenes, event_dates
 
 
-###################### lighting functions ######################
+def read_open_hours(cursor):
+    # get open close hours from only row of time table
+    cursor.execute("SELECT open_hour, open_minute, close_hour, close_minute FROM time WHERE time_id = 1")
+
+    # get the entire row
+    row = cursor.fetchone()
+
+    # load table columns into variables
+    open_hour, open_minute, close_hour, close_minute = row
+
+    return open_hour, open_minute, close_hour, close_minute
+
+
+def check_time():
+    # get time struct from pi clock
+    now = datetime.datetime.now()
+
+    # get ISO 8601 string of today's date
+    today = datetime.date.today()
+    date_string = today.isoformat()
+
+    return date_string, now.hour, now.minute
+
+
+# -------------------- lighting functions ----------------------
 
 def sequence_solid(pwm, color_list, cycle_time, dimmer):
     # get color_list length
@@ -521,11 +662,11 @@ def crossfade(pwm, color_list, cycle_time, dimmer):
                 for i in range(1, inc + 1):
                     # assign current color values with progressive difference from next color
                     pwm.channels[0].duty_cycle = int(current_color[0] * (0xffff - dimmer)) + int(
-                        (color_difference[0] * i * (0xffff - dimmer)) / (inc))
+                        (color_difference[0] * i * (0xffff - dimmer)) / inc)
                     pwm.channels[1].duty_cycle = int(current_color[1] * (0xffff - dimmer)) + int(
-                        (color_difference[1] * i * (0xffff - dimmer)) / (inc))
+                        (color_difference[1] * i * (0xffff - dimmer)) / inc)
                     pwm.channels[2].duty_cycle = int(current_color[2] * (0xffff - dimmer)) + int(
-                        (color_difference[2] * i * (0xffff - dimmer)) / (inc))
+                        (color_difference[2] * i * (0xffff - dimmer)) / inc)
 
                     # check for raised flag during the step_time timeout
                     if stop_flag.wait(timeout=step_time):
@@ -540,11 +681,11 @@ def crossfade(pwm, color_list, cycle_time, dimmer):
                 for i in range(1, inc + 1):
                     # assign current color values with progressive difference from next color
                     pwm.channels[0].duty_cycle = int(current_color[0] * (0xffff - dimmer)) + int(
-                        (color_difference[0] * i * (0xffff - dimmer)) / (inc))
+                        (color_difference[0] * i * (0xffff - dimmer)) / inc)
                     pwm.channels[1].duty_cycle = int(current_color[1] * (0xffff - dimmer)) + int(
-                        (color_difference[1] * i * (0xffff - dimmer)) / (inc))
+                        (color_difference[1] * i * (0xffff - dimmer)) / inc)
                     pwm.channels[2].duty_cycle = int(current_color[2] * (0xffff - dimmer)) + int(
-                        (color_difference[2] * i * (0xffff - dimmer)) / (inc))
+                        (color_difference[2] * i * (0xffff - dimmer)) / inc)
 
                     # check for raised flag during the step_time timeout
                     if stop_flag.wait(timeout=step_time):
@@ -590,11 +731,11 @@ def crossfade_hold(pwm, color_list, cycle_time, dimmer):
                 for i in range(1, inc + 1):
                     # assign current color values with progressive difference from next color
                     pwm.channels[0].duty_cycle = int(current_color[0] * (0xffff - dimmer)) + int(
-                        (color_difference[0] * i * (0xffff - dimmer)) / (inc))
+                        (color_difference[0] * i * (0xffff - dimmer)) / inc)
                     pwm.channels[1].duty_cycle = int(current_color[1] * (0xffff - dimmer)) + int(
-                        (color_difference[1] * i * (0xffff - dimmer)) / (inc))
+                        (color_difference[1] * i * (0xffff - dimmer)) / inc)
                     pwm.channels[2].duty_cycle = int(current_color[2] * (0xffff - dimmer)) + int(
-                        (color_difference[2] * i * (0xffff - dimmer)) / (inc))
+                        (color_difference[2] * i * (0xffff - dimmer)) / inc)
 
                     # check for raised flag during the step_time timeout
                     if stop_flag.wait(timeout=step_time):
@@ -618,112 +759,222 @@ def crossfade_hold(pwm, color_list, cycle_time, dimmer):
                 for i in range(1, inc + 1):
                     # assign current color values with progressive difference from next color
                     pwm.channels[0].duty_cycle = int(current_color[0] * (0xffff - dimmer)) + int(
-                        (color_difference[0] * i * (0xffff - dimmer)) / (inc))
+                        (color_difference[0] * i * (0xffff - dimmer)) / inc)
                     pwm.channels[1].duty_cycle = int(current_color[1] * (0xffff - dimmer)) + int(
-                        (color_difference[1] * i * (0xffff - dimmer)) / (inc))
+                        (color_difference[1] * i * (0xffff - dimmer)) / inc)
                     pwm.channels[2].duty_cycle = int(current_color[2] * (0xffff - dimmer)) + int(
-                        (color_difference[2] * i * (0xffff - dimmer)) / (inc))
+                        (color_difference[2] * i * (0xffff - dimmer)) / inc)
 
                     # check for raised flag during the step_time timeout
                     if stop_flag.wait(timeout=step_time):
                         return None
 
 
-############################# main #############################
+# --------------------------- main -----------------------------
 
 def main():
-    ################ initialization and startup ################
+    # -------------- initialization and startup ----------------
 
     # create pwm object for light control
-    pwm, rtc = initialize_i2c_devices()
+    pwm = initialize_i2c_devices()
+
+    # indicate i2c devices have been initialized
+    i2c_good(pwm)
+
+    # load sqlite database for program
+    cursor = initialize_database()
+
+    # indicate database has been initialized
+    database_good(pwm)
 
     # initialize input bus for hardware inputs
     inputs = initialize_input_bus()
 
-    # load sqlite database for program
-    cursor = load_database()
+    # indicate input bus has been initialized
+    input_bus_good(pwm)
 
-    # blink white 3 times for startup
-    startup_blink(pwm)
-
-    # read default scene from database
+    # read default scene info from scenes table
     function, color_list, cycle_time, dimmer = read_default_scene(cursor)
 
-    ########## start lighting thread and check inputs ##########
+    # start lighting thread with default scene info
+    lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
+    lighting_thread.start()
 
-    # set lighting function and arguments for lighting thread
-    light_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
+    # create status variable to track last active connection
+    active_connection = None
 
-    # start thread in background
-    light_thread.start()
+    # create status variable to track if business is open
+    off_running = False
 
+    # create status variable to track if event is running
+    event_running = False
 
+    # create status variable to track if default is running
+    default_running = False
 
+    # ----------------- lighting thread loop -------------------
 
-    # check for connections to become active
+    # light tube control hierarchy
+    # -------------------------------
+    # 1 - connections: if a connection receives power, then it will be given control
+    # 2 - time: if no connections are active AND the business is closed, then lighting will be disabled
+    # 3 - event: if no connections are active, the business is open, AND today is an event day, then event lighting will be displayed
+    # 4 - default: if no other level has control, then default lighting will be displayed
+
     while True:
+        # check current state of input bus
         states = read_input_bus(inputs)
+
+        # if any connections are currently active
         if any(states):
-            # element of states list that is True is active connection
+            # set other status variables to false
+            event_running = False
+            default_running = False
+            off_running = False
+
+            # return the lowest index that is true
             connection = states.index(True)
 
-            # stop light thread to run connection thread
-            stop_flag.set()
-            light_thread.join()
-            stop_flag.clear()
+            # if the connection above is not the currently active connection
+            if connection != active_connection:
+                # set it as the active connection
+                active_connection = connection
 
-            # get connection scene info and run thread (+1 for sqlite 1-indexing)
-            conn_function, conn_color_list, conn_cycle_time, conn_dimmer = read_connection_scene(cursor, connection + 1)
-            light_thread = threading.Thread(target=conn_function,
-                                            args=(pwm, conn_color_list, conn_cycle_time, conn_dimmer))
-            light_thread.start()
+                # stop the lighting thread
+                stop_flag.set()
+                lighting_thread.join()
+                stop_flag.clear()
 
-            while True:
-                # check connections while running light_thread
-                states = read_input_bus(inputs)
-                if any(states):
-                    # get index of active connection
-                    temp = states.index(True)
+                # get the scene info for the new active connection (+1 for sqlite 1-indexing)
+                function, color_list, cycle_time, dimmer = read_connection_scene(cursor, connection + 1)
+
+                # and restart the lighting thread
+                lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
+                lighting_thread.start()
+
+                # wait for 30ms and loop again
+                time.sleep(0.03)
+                continue
+
+            # if the 'new' connection is already the active connection
+            else:
+                # wait for 10ms and loop again
+                time.sleep(0.01)
+                continue
+
+        # if no connections are currently active
+        else:
+            # set last active connection to none
+            active_connection = None
+
+            # check time table for up-to-date business hours
+            open_hour, open_minute, close_hour, close_minute = read_open_hours(cursor)
+
+            # check the current time
+            curr_date, curr_hour, curr_minute = check_time()
+
+            # if the current time is within business hours
+            if (open_hour, open_minute) <= (curr_hour, curr_minute) < (close_hour, close_minute):
+                # set off as not running
+                off_running = False
+
+                # check events table for up-to-date event dates
+                event_scenes, event_dates = read_events(cursor)
+
+                # check if current date is event date
+                try:
+                    event_index = event_dates.index(curr_date)
+                except ValueError:
+                    event_index = -1
+
+                # if current day is event day
+                if event_index != -1:
+                    # if event lighting is not already running
+                    if not event_running:
+                        # set event as running
+                        event_running = True
+                        # set default as not running
+                        default_running = False
+
+                        # stop the lighting thread
+                        stop_flag.set()
+                        lighting_thread.join()
+                        stop_flag.clear()
+
+                        # get the scene info for the event
+                        function, color_list, cycle_time, dimmer = read_event_scene(cursor, event_scenes[event_index])
+
+                        # and restart the lighting thread
+                        lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
+                        lighting_thread.start()
+
+                        # wait for 30ms and loop again
+                        time.sleep(0.03)
+                        continue
+
+                    # if current day is event day and event lighting has been running for at least one loop
+                    else:
+                        # wait for 10ms and loop again
+                        time.sleep(0.01)
+                        continue
+
+                 # if current day is not event day
                 else:
-                    # no connections are active so return to default scene
+                    # if default lighting is not already running
+                    if not default_running:
+                        # set event as not running
+                        event_running = False
+                        # set default as running
+                        default_running = True
+
+                        # stop the lighting thread
+                        stop_flag.set()
+                        lighting_thread.join()
+                        stop_flag.clear()
+
+                        # get the default scene info
+                        function, color_list, cycle_time, dimmer = read_default_scene(cursor)
+
+                        # and restart the lighting thread
+                        lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
+                        lighting_thread.start()
+
+                        # wait for 30ms and loop again
+                        time.sleep(0.03)
+                        continue
+
+                    # if default lighting has been running for at least one loop
+                    else:
+                        # wait for 10ms and loop again
+                        time.sleep(0.01)
+                        continue
+
+            # if the current time is not within business hours
+            else:
+                # check if current time has just left business hours
+                if not off_running:
+                    # set off as running
+                    off_running = True
+
+                    # stop the lighting thread
                     stop_flag.set()
-                    light_thread.join()
+                    lighting_thread.join()
                     stop_flag.clear()
 
-                    # get fresh default info in case table has changed
-                    function, color_list, cycle_time, dimmer = read_default_scene(cursor)
-                    light_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
-                    light_thread.start()
-                    break
+                    # and restart the lighting thread with no colors
+                    lighting_thread = threading.Thread(target=sequence_solid, args=(pwm, [[0.0, 0.0, 0.0]], 1, 0))
+                    lighting_thread.start()
 
-                if temp == connection:
-                    # if same connection is still active continue running associated scene
+                    # wait for 30ms and loop again
+                    time.sleep(0.03)
+                    continue
+
+                # if off lighting has been running for at least one loop
+                else:
+                    # wait for 10ms and loop again
                     time.sleep(0.01)
                     continue
-                elif temp != connection:
-                    # if a new, lower index connection is active, get new connection value and stop light thread
-                    connection = temp
-                    stop_flag.set()
-                    light_thread.join()
-                    stop_flag.clear()
-
-                    # restart light thread with new connection scene info
-                    conn_function, conn_color_list, conn_cycle_time, conn_dimmer = read_connection_scene(cursor,
-                                                                                                         connection + 1)
-                    light_thread = threading.Thread(target=conn_function,
-                                                    args=(pwm, conn_color_list, conn_cycle_time, conn_dimmer))
-                    light_thread.start()
-        else:
-            # if no connections are active then continue running default scene
-            time.sleep(0.01)
-
-
-
-
-
-
 
 
 if __name__ == "__main__":
-
     main()
