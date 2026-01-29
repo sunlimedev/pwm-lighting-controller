@@ -709,9 +709,10 @@ def main():
 
             # check the current time
             curr_date, curr_hour, curr_minute = check_time()
-
-            # if the current time is within business hours
+            
+            # if the current time is within business hours -- B --
             if (open_hour, open_minute) <= (curr_hour, curr_minute) < (close_hour, close_minute):
+                
                 # set off as not running
                 off_running = False
 
@@ -724,8 +725,9 @@ def main():
                 except ValueError:
                     event_index = -1
 
-                # if current day is event day
+                # if current day is present on event table
                 if event_index != -1:
+                    
                     # if event lighting is not already running
                     if not event_running:
                         # set event as running
@@ -786,10 +788,8 @@ def main():
                         time.sleep(0.01)
                         continue
 
-            # if the current time is not within business hours
-            else:
-                # check if current time has just left business hours
-                if not off_running:
+ 
+                    
                     # set off as running
                     off_running = True
 
