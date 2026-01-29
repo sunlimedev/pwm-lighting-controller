@@ -794,6 +794,10 @@ def main():
                 if not off_running:
                     # set off as running
                     off_running = True
+                    # set event as not running
+                    event_running = False
+                    # set default as not running
+                    default_running = False
 
                     # stop the lighting thread
                     stop_flag.set()
