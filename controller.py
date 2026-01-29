@@ -321,7 +321,7 @@ def sequence_decay(pwm, color_list, cycle_time, dimmer):
     # lookup table for function
     decay = [0x979, 0xc85, 0x15a8, 0x24dd, 0x3a30, 0x5594, 0x770a, 0x9e9d, 0xcc42, 0xffff, 0xffff, 0xf5f6, 0xec4f,
              0xe30b, 0xda22, 0xd196, 0xc95e, 0xc17b, 0xb9e1, 0xb29c, 0xab98, 0xa4dd, 0x9e69, 0x9831, 0x923a, 0x8c7e,
-             0x86fd, 0x81b0,0x7c9e, 0x77bb, 0x7305, 0x6e83, 0x6a30, 0x6604, 0x6205, 0x5e2e, 0x5a7f, 0x56f0, 0x5388,
+             0x86fd, 0x81b0, 0x7c9e, 0x77bb, 0x7305, 0x6e83, 0x6a30, 0x6604, 0x6205, 0x5e2e, 0x5a7f, 0x56f0, 0x5388,
              0x5041, 0x4d1b, 0x4a16, 0x472b, 0x4460, 0x41b7, 0x3f21, 0x3ca5, 0x3a44, 0x37fd, 0x35c9, 0x33b0, 0x31aa,
              0x2fb8, 0x2dd9, 0x2c08, 0x2a51, 0x28a7, 0x2711, 0x2587, 0x2412, 0x22a3, 0x2148, 0x1ff9, 0x1eb8, 0x1d84,
              0x1c5d, 0x1b43, 0x1a30, 0x192a, 0x182b, 0x1738, 0x1653, 0x156d, 0x149c, 0x13ca, 0x1305, 0x1247, 0x1190,
@@ -628,7 +628,7 @@ def main():
     input_bus_good(pwm)
 
     # read default scene info from scenes table
-    function, color_list, cycle_time, dimmer = read_scene_info(cursor, scene_id = 1)
+    function, color_list, cycle_time, dimmer = read_scene_info(cursor, scene_id=1)
 
     # start lighting thread with default scene info
     lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
@@ -680,7 +680,7 @@ def main():
                 stop_flag.clear()
 
                 # get the scene_id for the now active connection (+1 for sqlite 1-indexing)
-                scene_id = read_connection_scene(cursor, connection_id = connection + 1)
+                scene_id = read_connection_scene(cursor, connection_id=connection + 1)
 
                 # get the scene info for the new active connection
                 function, color_list, cycle_time, dimmer = read_scene_info(cursor, scene_id)
@@ -709,10 +709,10 @@ def main():
 
             # check the current time
             curr_date, curr_hour, curr_minute = check_time()
-            
+
             # if the current time is within business hours -- B --
             if (open_hour, open_minute) <= (curr_hour, curr_minute) < (close_hour, close_minute):
-                
+
                 # set off as not running
                 off_running = False
 
@@ -727,7 +727,7 @@ def main():
 
                 # if current day is present on event table
                 if event_index != -1:
-                    
+
                     # if event lighting is not already running
                     if not event_running:
                         # set event as running
@@ -741,7 +741,7 @@ def main():
                         stop_flag.clear()
 
                         # get the scene info for the event
-                        function, color_list, cycle_time, dimmer = read_scene_info(cursor, scene_id = event_scenes[event_index])
+                        function, color_list, cycle_time, dimmer = read_scene_info(cursor, scene_id=event_scenes[event_index])
 
                         # and restart the lighting thread
                         lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
@@ -751,13 +751,13 @@ def main():
                         time.sleep(0.03)
                         continue
 
-                    # if current day is event day and event lighting has been running for at least one loop
+                    # if event lighting has been running for at least one loop
                     else:
                         # wait for 10ms and loop again
                         time.sleep(0.01)
                         continue
 
-                 # if current day is not event day
+                # if current day is not event day
                 else:
                     # if default lighting is not already running
                     if not default_running:
@@ -772,7 +772,7 @@ def main():
                         stop_flag.clear()
 
                         # get the default scene info
-                        function, color_list, cycle_time, dimmer = read_scene_info(cursor, scene_id = 1)
+                        function, color_list, cycle_time, dimmer = read_scene_info(cursor, scene_id=1)
 
                         # and restart the lighting thread
                         lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
@@ -788,8 +788,10 @@ def main():
                         time.sleep(0.01)
                         continue
 
- 
-                    
+            # if the current time is not within business hours
+            else:
+                # check if current time has just left business hours
+                if not off_running:
                     # set off as running
                     off_running = True
 
