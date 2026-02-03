@@ -77,14 +77,7 @@ def initialize_input_bus():
     input_pins = [22, 10, 9, 11, 5, 6, 13, 26]
 
     # initialize input_pins as gpiozero DigitalInputDevice class instances
-    inputs = [gpiozero.DigitalInputDevice(pin=input_pins[0], pull_up=True),
-              gpiozero.DigitalInputDevice(pin=input_pins[1], pull_up=True),
-              gpiozero.DigitalInputDevice(pin=input_pins[2], pull_up=True),
-              gpiozero.DigitalInputDevice(pin=input_pins[3], pull_up=True),
-              gpiozero.DigitalInputDevice(pin=input_pins[4], pull_up=True),
-              gpiozero.DigitalInputDevice(pin=input_pins[5], pull_up=True),
-              gpiozero.DigitalInputDevice(pin=input_pins[6], pull_up=True),
-              gpiozero.DigitalInputDevice(pin=input_pins[7], pull_up=True)]
+    inputs = [gpiozero.DigitalInputDevice(pin=pin, pull_up=True) for pin in input_pins]
 
     return inputs
 
@@ -634,9 +627,6 @@ def main():
     lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
     lighting_thread.start()
 
-    # create status variable to track last active connection
-    active_connection = None
-
     # create status variable to track if business is open
     off_running = False
 
@@ -669,41 +659,38 @@ def main():
             # return the lowest index that is true
             connection = states.index(True)
 
-            # if the connection above is not the currently active connection
-            if connection != active_connection:
-                # set it as the active connection
-                active_connection = connection
+            # get the scene_id for the connection (+1 for sqlite 1-indexing)
+            scene_id = read_connection_scene(cursor, connection_id=connection + 1)
+
+            # and check the associated scene info
+            temp_function, temp_color_list, temp_cycle_time, temp_dimmer = read_scene_info(cursor, scene_id)
+
+            # if the scene info has not changed from the last connection's scene info
+            if (temp_function, temp_color_list, temp_cycle_time, temp_dimmer) == (function, color_list, cycle_time, dimmer):
+                # wait for 100ms and loop again
+                time.sleep(0.1)
+                continue
+
+            # if the scene info has changed
+            else:
+                # get the new scene info
+                function, color_list, cycle_time, dimmer = temp_function, temp_color_list, temp_cycle_time, temp_dimmer
 
                 # stop the lighting thread
                 stop_flag.set()
                 lighting_thread.join()
                 stop_flag.clear()
 
-                # get the scene_id for the now active connection (+1 for sqlite 1-indexing)
-                scene_id = read_connection_scene(cursor, connection_id=connection + 1)
-
-                # get the scene info for the new active connection
-                function, color_list, cycle_time, dimmer = read_scene_info(cursor, scene_id)
-
-                # and restart the lighting thread
+                # and restart the lighting thread with the new scene info
                 lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
                 lighting_thread.start()
 
-                # wait for 30ms and loop again
-                time.sleep(0.03)
-                continue
-
-            # if the 'new' connection is already the active connection
-            else:
-                # wait for 10ms and loop again
-                time.sleep(0.01)
+                # wait for 100ms and loop again
+                time.sleep(0.1)
                 continue
 
         # if no connections are currently active
         else:
-            # set last active connection to none
-            active_connection = None
-
             # check time table for up-to-date business hours
             open_hour, open_minute, close_hour, close_minute = read_open_hours(cursor)
 
