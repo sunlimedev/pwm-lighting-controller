@@ -627,14 +627,8 @@ def main():
     lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
     lighting_thread.start()
 
-    # create status variable to track if business is open
-    off_running = False
-
-    # create status variable to track if event is running
-    event_running = False
-
-    # create status variable to track if default is running
-    default_running = False
+    # create status variable to track if lighting is disabled
+    lights_off = False
 
     # ----------------- lighting thread loop -------------------
 
@@ -651,11 +645,6 @@ def main():
 
         # if any connections are currently active
         if any(states):
-            # set other status variables to false
-            event_running = False
-            default_running = False
-            off_running = False
-
             # return the lowest index that is true
             connection = states.index(True)
 
@@ -697,11 +686,18 @@ def main():
             # check the current time
             curr_date, curr_hour, curr_minute = check_time()
 
-            # if the current time is within business hours -- B --
-            if (open_hour, open_minute) <= (curr_hour, curr_minute) < (close_hour, close_minute):
+            # manage all possible hour scenarios
+            if open_hour <= close_hour:
+                # normal hours like 9a-5p
+                is_open = (open_hour, open_minute) <= (curr_hour, curr_minute) < (close_hour, close_minute)
+            else:
+                # overnight hours like 10:30a-1a (wingstop case)
+                is_open = (curr_hour, curr_minute) >= (open_hour, open_minute) or (curr_hour, curr_minute) < (close_hour, close_minute)
 
+            # if the current time is within business hours
+            if is_open:
                 # set off as not running
-                off_running = False
+                lights_off = False
 
                 # check events table for up-to-date event dates
                 event_scenes, event_dates = read_events(cursor)
@@ -714,95 +710,89 @@ def main():
 
                 # if current day is present on event table
                 if event_index != -1:
+                    # check the associated scene info
+                    temp_function, temp_color_list, temp_cycle_time, temp_dimmer = read_scene_info(cursor, scene_id=event_scenes[event_index])
 
-                    # if event lighting is not already running
-                    if not event_running:
-                        # set event as running
-                        event_running = True
-                        # set default as not running
-                        default_running = False
+                    # if the scene info has not changed from the last scene's info
+                    if (temp_function, temp_color_list, temp_cycle_time, temp_dimmer) == (function, color_list, cycle_time, dimmer):
+                        # wait for 100ms and loop again
+                        time.sleep(0.1)
+                        continue
+
+                    # if the scene info has changed
+                    else:
+                        # get the new scene info
+                        function, color_list, cycle_time, dimmer = temp_function, temp_color_list, temp_cycle_time, temp_dimmer
 
                         # stop the lighting thread
                         stop_flag.set()
                         lighting_thread.join()
                         stop_flag.clear()
 
-                        # get the scene info for the event
-                        function, color_list, cycle_time, dimmer = read_scene_info(cursor, scene_id=event_scenes[event_index])
-
-                        # and restart the lighting thread
+                        # and restart the lighting thread with new scene info
                         lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
                         lighting_thread.start()
 
-                        # wait for 30ms and loop again
-                        time.sleep(0.03)
-                        continue
-
-                    # if event lighting has been running for at least one loop
-                    else:
-                        # wait for 10ms and loop again
-                        time.sleep(0.01)
+                        # wait for 100ms and loop again
+                        time.sleep(0.1)
                         continue
 
                 # if current day is not event day
                 else:
-                    # if default lighting is not already running
-                    if not default_running:
-                        # set event as not running
-                        event_running = False
-                        # set default as running
-                        default_running = True
+                    # check the default scene info
+                    temp_function, temp_color_list, temp_cycle_time, temp_dimmer = read_scene_info(cursor, scene_id=1)
+
+                    # if the scene info has not changed from the last scene's info
+                    if (temp_function, temp_color_list, temp_cycle_time, temp_dimmer) == (function, color_list, cycle_time, dimmer):
+                        # wait for 100ms and loop again
+                        time.sleep(0.1)
+                        continue
+
+                    # if the scene info has changed
+                    else:
+                        # get the new scene info
+                        function, color_list, cycle_time, dimmer = temp_function, temp_color_list, temp_cycle_time, temp_dimmer
 
                         # stop the lighting thread
                         stop_flag.set()
                         lighting_thread.join()
                         stop_flag.clear()
 
-                        # get the default scene info
-                        function, color_list, cycle_time, dimmer = read_scene_info(cursor, scene_id=1)
-
-                        # and restart the lighting thread
+                        # and restart the lighting thread with new scene info
                         lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
                         lighting_thread.start()
 
-                        # wait for 30ms and loop again
-                        time.sleep(0.03)
-                        continue
-
-                    # if default lighting has been running for at least one loop
-                    else:
-                        # wait for 10ms and loop again
-                        time.sleep(0.01)
+                        # wait for 100ms and loop again
+                        time.sleep(0.1)
                         continue
 
             # if the current time is not within business hours
             else:
                 # check if current time has just left business hours
-                if not off_running:
-                    # set off as running
-                    off_running = True
-                    # set event as not running
-                    event_running = False
-                    # set default as not running
-                    default_running = False
+                if not lights_off:
+                    # set lights as off
+                    lights_off = True
 
                     # stop the lighting thread
                     stop_flag.set()
                     lighting_thread.join()
                     stop_flag.clear()
 
-                    # and restart the lighting thread with no colors
-                    lighting_thread = threading.Thread(target=sequence_solid, args=(pwm, [[0.0, 0.0, 0.0]], 1, 0))
+                    # set scene info for lights off
+                    function, color_list, cycle_time, dimmer = globals().get("sequence_solid"), [[0.0, 0.0, 0.0]], 1, 0
+
+                    # and restart the lighting thread with new info
+                    lighting_thread = threading.Thread(target=sequence_solid, args=(pwm, color_list, cycle_time, dimmer))
                     lighting_thread.start()
 
-                    # wait for 30ms and loop again
-                    time.sleep(0.03)
+                    # wait for 100ms and loop again
+                    time.sleep(0.1)
                     continue
 
                 # if off lighting has been running for at least one loop
                 else:
-                    # wait for 10ms and loop again
-                    time.sleep(0.01)
+                    # wait for 100ms and loop again
+                    time.sleep(0.1)
                     continue
 
 
