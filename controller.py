@@ -49,7 +49,19 @@ def initialize_database():
     conn = sqlite3.connect('lighting.db')
     cursor = conn.cursor()
 
-    return cursor
+    # set WAL mode to avoid locking between python and PHP
+    cursor.execute("PRAGMA journal_mode = WAL;")
+
+    # set sync to normal for fast commits that are still safe from crashes
+    cursor.execute("PRAGMA synchronous = NORMAL;")
+
+    # set timeout retry length to 5s in case of lock
+    cursor.execute("PRAGMA busy_timeout = 5000;")
+
+    # set max WAL size to 4MB
+    cursor.execute("PRAGMA wal_autocheckpoint = 1000;")
+
+    return conn, cursor
 
 
 def database_good(pwm):
@@ -104,13 +116,6 @@ def input_bus_good(pwm):
 
 # ---------------------- data functions ------------------------
 
-def read_input_bus(inputs):
-    # gather states from inputs
-    states = [i.value for i in inputs]
-
-    return states
-
-
 def read_scene_info(cursor, scene_id):
     # read event scene info from lighting.db
     cursor.execute(
@@ -147,6 +152,26 @@ def read_scene_info(cursor, scene_id):
     dimmer = int(0x3333 * (5 - brightness))
 
     return function, color_list, cycle_time, dimmer
+
+
+def read_connection_scene(cursor, connection_id):
+    # increment connection_id for sqlite 1-indexing
+    connection_id += 1
+
+    # navigate to scene used in connection in lighting.db
+    cursor.execute("SELECT scene FROM connections WHERE connection_id = ?", (connection_id,))
+
+    # get connection scene row (more tuple nonsense)
+    row = cursor.fetchone()
+
+    # get scene_id from pulled row
+    scene_id = row[0]
+
+    # if scene_id is null, set to 1 (so nothing breaks)
+    if scene_id is None:
+        scene_id = 1
+
+    return scene_id
 
 
 def color_ids_to_list(cursor, color_ids):
@@ -204,23 +229,6 @@ def color_ids_to_list(cursor, color_ids):
     return color_list
 
 
-def read_connection_scene(cursor, connection_id):
-    # navigate to scene used in connection in lighting.db
-    cursor.execute("SELECT scene FROM connections WHERE connection_id = ?", (connection_id,))
-
-    # get connection scene row (more tuple nonsense)
-    row = cursor.fetchone()
-
-    # get scene_id from pulled row
-    scene_id = row[0]
-
-    # if scene_id is null, set to 1 (so nothing breaks)
-    if scene_id is None:
-        scene_id = 1
-
-    return scene_id
-
-
 def read_events(cursor):
     # read entire events table
     cursor.execute("SELECT * FROM events")
@@ -246,6 +254,28 @@ def read_open_hours(cursor):
     open_hour, open_minute, close_hour, close_minute = row
 
     return open_hour, open_minute, close_hour, close_minute
+
+
+def set_active_connections(conn, cursor, connection_id):
+    # set the active connections to none in the table
+    cursor.execute("UPDATE connections SET is_active = 0")
+
+    # if a new connection is active
+    if connection_id != 0:
+        # set the is_active column to 1 for the active connection
+        cursor.execute("UPDATE connections SET is_active = 1 WHERE connection_id = ?", (connection_id,))
+
+    # commit changes to database
+    conn.commit()
+
+    return
+
+
+def read_input_bus(inputs):
+    # gather states from inputs
+    states = [i.value for i in inputs]
+
+    return states
 
 
 def check_time():
@@ -609,7 +639,7 @@ def main():
     i2c_good(pwm)
 
     # load sqlite database for program
-    cursor = initialize_database()
+    conn, cursor = initialize_database()
 
     # indicate database has been initialized
     database_good(pwm)
@@ -630,6 +660,9 @@ def main():
     # create status variable to track if lighting is disabled
     lights_off = False
 
+    # create status variable to see if a connection was just running
+    connection_was_running = False
+
     # ----------------- lighting thread loop -------------------
 
     # light tube control hierarchy
@@ -645,11 +678,14 @@ def main():
 
         # if any connections are currently active
         if any(states):
+            # set connection status to running
+            connection_was_running = True
+
             # return the lowest index that is true
             connection = states.index(True)
 
-            # get the scene_id for the connection (+1 for sqlite 1-indexing)
-            scene_id = read_connection_scene(cursor, connection_id=connection + 1)
+            # get the scene_id for the connection
+            scene_id = read_connection_scene(cursor, connection_id=connection)
 
             # and check the associated scene info
             temp_function, temp_color_list, temp_cycle_time, temp_dimmer = read_scene_info(cursor, scene_id)
@@ -662,6 +698,9 @@ def main():
 
             # if the scene info has changed
             else:
+                # update the database to reflect the active connection (+1 for sqlite 1-indexing)
+                set_active_connections(conn, cursor, connection + 1)
+
                 # get the new scene info
                 function, color_list, cycle_time, dimmer = temp_function, temp_color_list, temp_cycle_time, temp_dimmer
 
@@ -680,6 +719,13 @@ def main():
 
         # if no connections are currently active
         else:
+            # check if connection was just running
+            if connection_was_running:
+                # set running to false
+                connection_was_running = False
+                # set all connections as off in table
+                set_active_connections(conn, cursor, connection_id=0)
+
             # check time table for up-to-date business hours
             open_hour, open_minute, close_hour, close_minute = read_open_hours(cursor)
 
