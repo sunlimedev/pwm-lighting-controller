@@ -1,11 +1,13 @@
-### Overview
+# Light Tube Controller Backend Documentation
+
+## Overview
 The backend for the Light Tube Controller manages all hardware for the project.
 
-### Dependencies
+## Dependencies
 1. System
 2. Virtual Environment
 
-### Lighting Control
+## Lighting Control
 PWM signaling to the light tubes is managed by `controller.py`. It is partitioned into four sections: initialization functions, data functions, lighting functions, and the main function.
 
 
@@ -13,20 +15,20 @@ PWM signaling to the light tubes is managed by `controller.py`. It is partitione
 talk about overarching design of file (thread and thread manager)
 
 
-#### Initialization
+### Initialization
 The initialization functions prepare the PCA9685 PWM LED Driver, SQLite Database, and the 8 bit input bus. There are a total of six initialization functions, three manage hardware and three indicate initialization success/failure to the operator.
 ```python
 def initialize_pwm()
-def pwm_good(pwm)        # blink red 3 times
+def pwm_good(pwm)  # blink red 3 times
 
 def initialize_database()
-def database_good(pwm)   # blink yellow 3 times
+def database_good(pwm)  # blink yellow 3 times
 
 def initialize_input_bus()
 def input_bus_good(pwm)  # blink green 3 times
 ```
 
-`initialize_pwm()` configures the PCA9685 PWM LED Driver and uses the `board`,`busio`, and `adafruit_pca9685` modules. The PWM frequency is set to 1kHz to avoid flicker. Once finished, this function returns a PCA9685 object `pwm` to be modified by other functions.
+`initialize_pwm()` configures the PCA9685 PWM LED Driver and uses the `board`, `busio`, and `adafruit_pca9685` modules. The PWM frequency is set to 1kHz to avoid LED flicker. Once finished, this function returns a PCA9685 object `pwm` to be modified by other functions.
 ```python
 def initialize_pwm():  
     # create the I2C bus interface  
@@ -68,7 +70,7 @@ def initialize_input_bus():
     input_pins = [22, 10, 9, 11, 5, 6, 13, 26]
     
     # initialize input_pins as gpiozero DigitalInputDevice class objects  
-    inputs = [gpiozero.DigitalInputDevice(pin=pin, pull_up=True) for pin in                      input_pins]
+    inputs = [gpiozero.DigitalInputDevice(pin=pin, pull_up=True) for pin in input_pins]
     
     return inputs
 ```
@@ -94,10 +96,10 @@ def pwm_good(pwm):
     
     return
 ```
-#### Data
+### Data
 placeholder
 
-#### Lighting
+### Lighting
 The lighting functions communicate with the PCA9685 PWM LED Driver to create a variety of visual effects. There are nine lighting functions that can be selected by the operator. The first three channels of the PCA9685 control the red, green, and blue channels of the light tubes, respectively. Each channel accepts an integer value 0-65535, or 0x0000-0xffff.
 ```python
 # set green color  
@@ -186,11 +188,11 @@ def sequence_fade(pwm, color_list, cycle_time, dimmer):
 
 
 
-#### Main()
+### Main()
 placeholder
 
 
 
-### Timing Control
+## Timing Control
 1. `set_rtc.py`
 2. `sync_clocks.py`
