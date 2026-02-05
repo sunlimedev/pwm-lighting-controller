@@ -13,7 +13,7 @@ stop_flag = threading.Event()
 
 # ---------------------- init functions ------------------------
 
-def initialize_i2c_devices():
+def initialize_pwm():
     # create the I2C bus interface
     i2c = busio.I2C(board.SCL, board.SDA)
 
@@ -24,7 +24,7 @@ def initialize_i2c_devices():
     return pwm
 
 
-def i2c_good(pwm):
+def pwm_good(pwm):
     # blink red 3 times on startup
     for i in range(3):
         # set red color
@@ -45,11 +45,11 @@ def i2c_good(pwm):
 
 
 def initialize_database():
-    # connect to sqlite database and get cursor
+    # connect to SQLite database and get cursor
     conn = sqlite3.connect('lighting.db')
     cursor = conn.cursor()
 
-    # set WAL mode to avoid locking between python and PHP
+    # set WAL mode to avoid blocking between python and PHP
     cursor.execute("PRAGMA journal_mode = WAL;")
 
     # set sync to normal for fast commits that are still safe from crashes
@@ -85,10 +85,10 @@ def database_good(pwm):
 
 
 def initialize_input_bus():
-    # provide input pins to use
+    # provide GPIO input pins to use
     input_pins = [22, 10, 9, 11, 5, 6, 13, 26]
 
-    # initialize input_pins as gpiozero DigitalInputDevice class instances
+    # initialize input_pins as gpiozero DigitalInputDevice class objects
     inputs = [gpiozero.DigitalInputDevice(pin=pin, pull_up=True) for pin in input_pins]
 
     return inputs
@@ -633,10 +633,10 @@ def main():
     # -------------- initialization and startup ----------------
 
     # create pwm object for light control
-    pwm = initialize_i2c_devices()
+    pwm = initialize_pwm()
 
-    # indicate i2c devices have been initialized
-    i2c_good(pwm)
+    # indicate pwm object has been initialized
+    pwm_good(pwm)
 
     # load sqlite database for program
     conn, cursor = initialize_database()
@@ -691,7 +691,8 @@ def main():
             temp_function, temp_color_list, temp_cycle_time, temp_dimmer = read_scene_info(cursor, scene_id)
 
             # if the scene info has not changed from the last connection's scene info
-            if (temp_function, temp_color_list, temp_cycle_time, temp_dimmer) == (function, color_list, cycle_time, dimmer):
+            if (temp_function, temp_color_list, temp_cycle_time, temp_dimmer) == (function, color_list, cycle_time,
+                                                                                  dimmer):
                 # wait for 100ms and loop again
                 time.sleep(0.1)
                 continue
@@ -738,7 +739,8 @@ def main():
                 is_open = (open_hour, open_minute) <= (curr_hour, curr_minute) < (close_hour, close_minute)
             else:
                 # overnight hours like 10:30a-1a (wingstop case)
-                is_open = (curr_hour, curr_minute) >= (open_hour, open_minute) or (curr_hour, curr_minute) < (close_hour, close_minute)
+                is_open = (curr_hour, curr_minute) >= (open_hour, open_minute) or (curr_hour, curr_minute) < (
+                    close_hour, close_minute)
 
             # if the current time is within business hours
             if is_open:
@@ -757,10 +759,12 @@ def main():
                 # if current day is present on event table
                 if event_index != -1:
                     # check the associated scene info
-                    temp_function, temp_color_list, temp_cycle_time, temp_dimmer = read_scene_info(cursor, scene_id=event_scenes[event_index])
+                    temp_function, temp_color_list, temp_cycle_time, temp_dimmer = read_scene_info(cursor, scene_id=
+                    event_scenes[event_index])
 
                     # if the scene info has not changed from the last scene's info
-                    if (temp_function, temp_color_list, temp_cycle_time, temp_dimmer) == (function, color_list, cycle_time, dimmer):
+                    if (temp_function, temp_color_list, temp_cycle_time, temp_dimmer) == (function, color_list,
+                                                                                          cycle_time, dimmer):
                         # wait for 100ms and loop again
                         time.sleep(0.1)
                         continue
@@ -789,7 +793,8 @@ def main():
                     temp_function, temp_color_list, temp_cycle_time, temp_dimmer = read_scene_info(cursor, scene_id=1)
 
                     # if the scene info has not changed from the last scene's info
-                    if (temp_function, temp_color_list, temp_cycle_time, temp_dimmer) == (function, color_list, cycle_time, dimmer):
+                    if (temp_function, temp_color_list, temp_cycle_time, temp_dimmer) == (function, color_list,
+                                                                                          cycle_time, dimmer):
                         # wait for 100ms and loop again
                         time.sleep(0.1)
                         continue
@@ -828,7 +833,8 @@ def main():
                     function, color_list, cycle_time, dimmer = globals().get("sequence_solid"), [[0.0, 0.0, 0.0]], 1, 0
 
                     # and restart the lighting thread with new info
-                    lighting_thread = threading.Thread(target=sequence_solid, args=(pwm, color_list, cycle_time, dimmer))
+                    lighting_thread = threading.Thread(target=sequence_solid,
+                                                       args=(pwm, color_list, cycle_time, dimmer))
                     lighting_thread.start()
 
                     # wait for 100ms and loop again
