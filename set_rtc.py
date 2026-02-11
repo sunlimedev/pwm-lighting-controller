@@ -25,13 +25,14 @@ month = int(date[5:7])
 day = int(date[8:10])
 hour = int(date[11:13])
 minute = int(date[14:16])
+second = int(date[17:19])
 
 # get weekday for DS3231
 date_object = datetime.date(year, month, day)
 weekday = date_object.weekday()
 
 # get yearday for DS3231
-temp_struct = time.struct_time((year, month, day, hour, minute, 0, 0, 0, -1))
+temp_struct = time.struct_time((year, month, day, hour, minute, second, 0, 0, -1))
 epoch = time.mktime(temp_struct)
 computed = time.localtime(epoch)
 
