@@ -11,7 +11,7 @@ i2c = busio.I2C(board.SCL, board.SDA)
 # initialize rtc object
 rtc = adafruit_ds3231.DS3231(i2c)
 
-# create argument for ISO8601 date string
+# create argument for ISO8601 date string -- YYYY-MM-DDTHH:MM:SS -- seconds optional, T can be any character
 parser = argparse.ArgumentParser()
 parser.add_argument("ISO_date")
 
@@ -25,7 +25,11 @@ month = int(date[5:7])
 day = int(date[8:10])
 hour = int(date[11:13])
 minute = int(date[14:16])
-second = int(date[17:19])
+
+if len(date) >= 19:
+    second = int(date[17:19])
+else:
+    second = 0
 
 # get weekday for DS3231
 date_object = datetime.date(year, month, day)
