@@ -148,7 +148,7 @@ def read_scene_info(cursor, scene_id):
     # derive cycle time from speed
     cycle_time = 6 - speed
 
-    # derive dimmer from brightness (1 = 10%, 10 = 100%)
+    # derive dimmer from brightness (1 = 20%, 5 = 100%)
     dimmer = int(0x3333 * (5 - brightness))
 
     return function, color_list, cycle_time, dimmer
@@ -854,3 +854,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
