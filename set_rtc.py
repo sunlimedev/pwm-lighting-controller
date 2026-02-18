@@ -1,3 +1,6 @@
+# cli example from within venv
+# python set_rtc.py 2026-02-11T15:07:05
+
 import time
 import board
 import busio
@@ -26,17 +29,12 @@ day = int(date[8:10])
 hour = int(date[11:13])
 minute = int(date[14:16])
 
-if len(date) >= 19:
-    second = int(date[17:19])
-else:
-    second = 0
-
 # get weekday for DS3231
 date_object = datetime.date(year, month, day)
 weekday = date_object.weekday()
 
 # get yearday for DS3231
-temp_struct = time.struct_time((year, month, day, hour, minute, second, 0, 0, -1))
+temp_struct = time.struct_time((year, month, day, hour, minute, 0, 0, 0, -1))
 epoch = time.mktime(temp_struct)
 computed = time.localtime(epoch)
 
