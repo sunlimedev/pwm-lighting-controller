@@ -1,6 +1,3 @@
-# cli example from within venv
-# python set_rtc.py 2026-02-11T15:07:05
-
 import time
 import board
 import busio
