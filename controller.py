@@ -243,15 +243,15 @@ def read_events(cursor):
     return event_scenes, event_dates
 
 
-def read_open_hours(cursor):
-    # get open close hours from only row of time table
-    cursor.execute("SELECT open_hour, open_minute, close_hour, close_minute FROM time WHERE time_id = 1")
+def read_open_hours(cursor, weekday):
+    # read entire time table
+    cursor.execute("SELECT * FROM time")
 
-    # get the entire row
-    row = cursor.fetchone()
+    # pull the entire table as a list of tuples
+    hours = cursor.fetchall()
 
-    # load table columns into variables
-    open_hour, open_minute, close_hour, close_minute = row
+    # extract the business hours depending on the weekday
+    open_hour, open_minute, close_hour, close_minute = hours[weekday][1], hours[weekday][2], hours[weekday][3], hours[weekday][4]
 
     return open_hour, open_minute, close_hour, close_minute
 
@@ -727,8 +727,12 @@ def main():
                 # set all connections as off in table
                 set_active_connections(conn, cursor, connection_id=0)
 
+            # get system weekday
+            today = datetime.datetime.today()
+            weekday = today.weekday()
+
             # check time table for up-to-date business hours
-            open_hour, open_minute, close_hour, close_minute = read_open_hours(cursor)
+            open_hour, open_minute, close_hour, close_minute = read_open_hours(cursor, weekday)
 
             # check the current time
             curr_date, curr_hour, curr_minute = check_time()
