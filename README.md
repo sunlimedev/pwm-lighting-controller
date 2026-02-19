@@ -1,4 +1,4 @@
-# Car Wash Controller
+# PWM Lighting Controller
 Python-based software controller for PWM lighting systems.
 
 # References
