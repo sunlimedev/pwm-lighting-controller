@@ -108,7 +108,7 @@ def input_bus_good(pwm):
         pwm.channels[0].duty_cycle = 0x0000
         pwm.channels[1].duty_cycle = 0x0000
         pwm.channels[2].duty_cycle = 0x0000
-        # hold off for 0.5 second
+        # hold off for 0.25 second
         time.sleep(0.25)
 
     return
@@ -854,6 +854,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
