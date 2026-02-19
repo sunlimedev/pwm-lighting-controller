@@ -1,8 +1,7 @@
 # PWM Lighting Controller
-Python-based software controller for PWM lighting systems.
+Controller for PWM lighting systems.
 
 # References
-
 https://gpiozero.readthedocs.io
 
 https://datasheets.raspberrypi.com/rpi4/raspberry-pi-4-datasheet.pdf
