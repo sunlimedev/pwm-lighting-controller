@@ -769,8 +769,8 @@ def main():
                     # if the scene info has not changed from the last scene's info
                     if (temp_function, temp_color_list, temp_cycle_time, temp_dimmer) == (function, color_list,
                                                                                           cycle_time, dimmer):
-                        # wait for 200ms and loop again
-                        time.sleep(0.2)
+                        # wait for 100ms and loop again
+                        time.sleep(0.1)
                         continue
 
                     # if the scene info has changed
@@ -787,8 +787,8 @@ def main():
                         lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
                         lighting_thread.start()
 
-                        # wait for 200ms and loop again
-                        time.sleep(0.2)
+                        # wait for 100ms and loop again
+                        time.sleep(0.1)
                         continue
 
                 # if current day is not event day
@@ -799,8 +799,8 @@ def main():
                     # if the scene info has not changed from the last scene's info
                     if (temp_function, temp_color_list, temp_cycle_time, temp_dimmer) == (function, color_list,
                                                                                           cycle_time, dimmer):
-                        # wait for 200ms and loop again
-                        time.sleep(0.2)
+                        # wait for 100ms and loop again
+                        time.sleep(0.1)
                         continue
 
                     # if the scene info has changed
@@ -817,8 +817,8 @@ def main():
                         lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
                         lighting_thread.start()
 
-                        # wait for 200ms and loop again
-                        time.sleep(0.2)
+                        # wait for 100ms and loop again
+                        time.sleep(0.1)
                         continue
 
             # if the current time is not within business hours
@@ -841,17 +841,18 @@ def main():
                                                        args=(pwm, color_list, cycle_time, dimmer))
                     lighting_thread.start()
 
-                    # wait for 200ms and loop again
-                    time.sleep(0.2)
+                    # wait for 100ms and loop again
+                    time.sleep(0.1)
                     continue
 
                 # if off lighting has been running for at least one loop
                 else:
-                    # wait for 200ms and loop again
-                    time.sleep(0.2)
+                    # wait for 100ms and loop again
+                    time.sleep(0.1)
                     continue
 
 
 if __name__ == "__main__":
     main()
+
 
