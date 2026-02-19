@@ -46,7 +46,7 @@ def pwm_good(pwm):
 
 def initialize_database():
     # connect to SQLite database and get cursor
-    conn = sqlite3.connect('lighting.db')
+    conn = sqlite3.connect('/home/user/project/database/lighting.db')
     cursor = conn.cursor()
 
     # set WAL mode to avoid blocking between python and PHP
@@ -854,5 +854,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
