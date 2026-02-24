@@ -1,0 +1,13 @@
+home.html
+scenes.html
+├── add-scene.html
+├── edit-scene.html
+events.html
+├── add-event.html
+├── edit-event.html
+connections.html
+├── edit-connection.html
+business-hours.html
+├── edit-business-hours.html
+setup-guide.html
+settings.html
