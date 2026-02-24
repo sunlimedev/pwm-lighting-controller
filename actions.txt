@@ -1,0 +1,17 @@
+install apache2
+sudo systemctl enable apache2
+sudo systemctl start apache2
+install php 
+install libapache2-mod-php
+install sqlite3
+install php-sqlite3
+
+restructure files
+
+sudo chown -R user:www-data /home/user/project/database
+sudo chmod 775 /home/user/project/database
+sudo chmod 664 /home/user/project/database/lighting.db
+chmod 755 /home/user
+chmod 755 /home/user/project
+
+create and enable systemd for controller.py and sync_clocks.py
