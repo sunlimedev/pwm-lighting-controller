@@ -1,83 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
-    <link rel="stylesheet" href="/css/tailwind.min.css">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Home</title>
+	<link rel="stylesheet" href="/css/tailwind.min.css">
 </head>
 
 <body class="bg-gray-100 min-h-screen">
 
 	<div class="text-center py-6">
-		<a href="/home.html">
+		<a href="/home.html" class="inline-block">
 			<img src="/assets/logo.svg" 
 				alt="Logo"
 				class="mx-auto w-48">
 		</a>
 	</div>
 
+	<div class="max-w-md mx-auto p-1">
+		<div class="flex justify-between items-center mb-6">
+			<h1 class="text-3xl font-semibold p-1">
+				Light Tube Controller
+			</h1>
+		
+			<a href="/home.html" 
+				class="px-4 py-3 bg-blue-400 rounded-xl
+						hover:bg-blue-500 active:scale-95
+						transition flex items-center
+						justify-center">
+
+			<img src="/assets/refresh.svg"
+				alt="Refresh"
+				class="w-12 h-6">
+			</a>
+		</div>
+    </div>
+
     <div class="max-w-md mx-auto p-1">
-        <h1 class="text-3xl font-semibold text-center mb-8">
-            Light Tube Controller
-        </h1>
         
         <div class="flex flex-col">
-			
-            <a href="/scenes.html" 
+
+            <a href="/scenes.php" 
                class="w-full py-5 text-xl font-medium
                       bg-yellow-400 text-black rounded-xl mb-1
-                      hover:bg-yellow-600 active:scale-95
+                      hover:bg-yellow-500 active:scale-95
                       transition block text-center">
                 Scenes
             </a>
             
-            <a href="/events.html" 
+            <a href="/connections.php" 
                class="w-full py-5 text-xl font-medium
                       bg-yellow-400 text-black rounded-xl mb-1
-                      hover:bg-yellow-600 active:scale-95
-                      transition block text-center">
-                Events
-            </a>
-            
-            <a href="/connections.html" 
-               class="w-full py-5 text-xl font-medium
-                      bg-yellow-400 text-black rounded-xl mb-1
-                      hover:bg-yellow-600 active:scale-95
+                      hover:bg-yellow-500 active:scale-95
                       transition block text-center">
                 Connections
             </a>
             
-            <a href="/business-hours.html" 
+            <a href="/schedule.php" 
                class="w-full py-5 text-xl font-medium
                       bg-yellow-400 text-black rounded-xl mb-1
-                      hover:bg-yellow-600 active:scale-95
+                      hover:bg-yellow-500 active:scale-95
                       transition block text-center">
-                Business Hours
+                Schedule
             </a>
             
             <a href="/setup-guide.html" 
                class="w-full py-5 text-xl font-medium
                       bg-yellow-400 text-black rounded-xl mb-1
-                      hover:bg-yellow-600 active:scale-95
+                      hover:bg-yellow-500 active:scale-95
                       transition block text-center">
                 Setup Guide
             </a>
             
-            <a href="/settings.html" 
+            <a href="/settings.php" 
                class="w-full py-5 text-xl font-medium
                       bg-yellow-400 text-black rounded-xl
-                      hover:bg-yellow-600 active:scale-95
+                      hover:bg-yellow-500 active:scale-95
                       transition block text-center">
                 Settings
             </a>
-            <div class="text-center text-gray-400 text-sm mt-8">
-			v1.0 - © 2026 Signal-Tech 
-			</div>
+            
         </div>
         
     </div>
     
+	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
+		v1.0 - © 2026 Signal-Tech 
+	</div>
+
 </body>
 
 </html>
