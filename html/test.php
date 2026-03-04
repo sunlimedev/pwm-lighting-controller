@@ -71,33 +71,21 @@ $weekday_names = [
 			<?php foreach ($rows as $row):
 
 				$day = $weekday_names[$row['weekday_id']];
-				if($row['open_hour'] == $row['close_hour'] and $row['open_minute'] == $row['close_minute'])
-				{
-					$hours = "Closed";
-				}
-				elseif($row['open_hour'] == 0 and $row['open_minute'] == 0 and $row['close_hour'] == 24 and $row['close_minute'] == 0)
-				{
-					$hours = "all day";
-				}
-				else
-				{
-					if($row['open_hour'] > 12) {
-						$open = sprintf("%2d:%02dp", $row['open_hour'] - 12, $row['open_minute']);
-					} elseif($row['open_hour'] == 12) {
-						$open = sprintf("%2d:%02dp", $row['open_hour'], $row['open_minute']);
-					} else {
-						$open = sprintf("%2d:%02da", $row['open_hour'], $row['open_minute']);
-					}
 				
-					if($row['close_hour'] > 12) {
-						$close = sprintf("%2d:%02dp", $row['close_hour'] - 12, $row['close_minute']);
-					} elseif($row['close_hour'] == 12) {
-						$close = sprintf("%2d:%02dp", $row['close_hour'], $row['close_minute']);
-					} else {
-						$close = sprintf("%2d:%02da", $row['close_hour'], $row['close_minute']);
-					}
-					
-					$hours = $open . " – " . $close;
+				if($row['open_hour'] > 12) {
+					$open = sprintf("%2d:%02dp", $row['open_hour'] - 12, $row['open_minute']);
+				} elseif($row['open_hour'] == 12) {
+					$open = sprintf("%2d:%02dp", $row['open_hour'], $row['open_minute']);
+				} else {
+					$open = sprintf("%2d:%02da", $row['open_hour'], $row['open_minute']);
+				}
+				
+				if($row['close_hour'] > 12) {
+					$close = sprintf("%2d:%02dp", $row['close_hour'] - 12, $row['close_minute']);
+				} elseif($row['close_hour'] == 12) {
+					$close = sprintf("%2d:%02dp", $row['close_hour'], $row['close_minute']);
+				} else {
+					$close = sprintf("%2d:%02da", $row['close_hour'], $row['close_minute']);
 				}
 			?>
 
@@ -107,7 +95,7 @@ $weekday_names = [
 				</span>
 
 				<span class="text-gray-700">
-					<?php echo $hours; ?>
+					<?php echo $open . " – " . $close; ?>
 				</span>
 			</div>
 

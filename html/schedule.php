@@ -70,7 +70,7 @@ $month_names = [
 <body class="bg-gray-100 min-h-screen">
 	
 	<div class="text-center py-6">
-		<a href="/home.html" class="inline-block">
+		<a href="/home.php" class="inline-block">
 			<img src="/assets/logo.svg" 
 				alt="Logo"
 				class="mx-auto w-48">
@@ -78,21 +78,30 @@ $month_names = [
 	</div>
 
 	<div class="max-w-md mx-auto p-1">
-		<div class="flex justify-between items-center mb-6">
+		<div class="flex justify-between items-center mb-2">
 			<h1 class="text-3xl font-semibold p-1">
 				Lighting Schedule
 			</h1>
 		
-			<a href="/schedule.php" 
-				class="px-4 py-3 bg-blue-400 rounded-xl
-						hover:bg-blue-500 active:scale-95
-						transition flex items-center
-						justify-center">
+			<!-- Button container -->
+			<div class="relative pr-1">
+            <a href="#" id="toggle-info1"
+               class="px-4 py-3 bg-purple-400 rounded-xl
+                      hover:bg-purple-500 active:scale-95
+                      transition flex items-center justify-center">
+                <img src="/assets/help.svg"
+                     alt="Help"
+                     class="w-12 h-6">
+            </a>
 
-			<img src="/assets/refresh.svg"
-				alt="Refresh"
-				class="w-12 h-6">
-			</a>
+            <!-- Floating popup -->
+            <div id="info-box1"
+                 class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
+                <p class="text-gray-700">
+                    The Lighting Schedule defines when the light tubes will display your default scene. If the current time is outside of your chosen hours, then the light tubes will turn off.
+                </p>
+            </div>
+        </div>
 		</div>
     </div>
 
@@ -160,27 +169,36 @@ $month_names = [
 	</div>
 	
 	<div class="max-w-md mx-auto p-1">
-		<div class="flex justify-between items-center mb-6">
+		<div class="flex justify-between items-center mb-2">
 			<h1 class="text-3xl font-semibold p-1">
 				Event Schedule
 			</h1>
 		
-			<a href="/schedule.php" 
-				class="px-4 py-3 bg-blue-400 rounded-xl
-						hover:bg-blue-500 active:scale-95
-						transition flex items-center
-						justify-center">
+			<!-- Button container -->
+        <div class="relative">
+            <a href="#" id="toggle-info2"
+               class="px-4 py-3 bg-purple-400 rounded-xl
+                      hover:bg-purple-500 active:scale-95
+                      transition flex items-center justify-center">
+                <img src="/assets/help.svg"
+                     alt="Help"
+                     class="w-12 h-6">
+            </a>
 
-			<img src="/assets/refresh.svg"
-				alt="Refresh"
-				class="w-12 h-6">
-			</a>
+            <!-- Floating popup -->
+            <div id="info-box2"
+                 class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
+                <p class="text-gray-700">
+                    The Event Schedule defines which days will have special lighting. If the current day is an event day, then the light tubes will display the associated scene.
+                </p>
+            </div>
+        </div>
 		</div>
     </div>
 	
 	<div class="max-w-md mx-auto p-1">
 	
-		<!-- big container for all of the events 2026-03-17-->
+		<!-- big container for all of the events-->
 		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200">
 			<?php foreach ($rows2 as $row):
 				$month = $month_names[substr($row['date'], 5, 2)];
@@ -189,7 +207,7 @@ $month_names = [
 				
 			?>
 
-			<div class="p-4 space-y-2">
+			<div class="p-4">
 
 				<!-- First row -->
 				<div class="flex justify-between items-center">
@@ -197,7 +215,7 @@ $month_names = [
 						<?php echo $month . " " . $day . ", " . $year; ?>
 					</span>
 
-					<span class="text-gray-700 text-right">
+					<span class="text-right">
 						<?php
 						$index = (int) $row['scene'] - 1;
 						echo "Scene " . $row['scene'] . ": " . $rows3[$index]['name'];
@@ -231,6 +249,23 @@ $month_names = [
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
 		v1.0 - © 2026 Signal-Tech 
 	</div>
+	
+<script>
+    const toggleBtn1 = document.getElementById('toggle-info1');
+    const infoBox1 = document.getElementById('info-box1');
+    const toggleBtn2 = document.getElementById('toggle-info2');
+    const infoBox2 = document.getElementById('info-box2');
+
+    toggleBtn1.addEventListener('click', (e) => {
+        e.preventDefault(); // prevent default anchor navigation
+        infoBox1.classList.toggle('hidden');
+    });
+    
+    toggleBtn2.addEventListener('click', (e) => {
+        e.preventDefault(); // prevent default anchor navigation
+        infoBox2.classList.toggle('hidden');
+    });
+</script>
 
 </body>
 </html>
