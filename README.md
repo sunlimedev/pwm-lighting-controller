@@ -1,5 +1,5 @@
 # PWM Lighting Controller
-Controller for PWM lighting systems.
+Controller for PWM lighting systems
 
 # References
 https://gpiozero.readthedocs.io
