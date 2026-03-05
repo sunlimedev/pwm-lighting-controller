@@ -109,10 +109,10 @@ $month_names = [
 	<div class="max-w-md mx-auto p-1">
 
 		<!-- big container for all of the weekdays-->
-		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200">
+		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200 flex flex-col mb-6">
+			<?php $count = 0; ?>
 			<?php foreach ($rows1 as $row):
 
-				$day = $weekday_names[$row['weekday_id']];
 				if($row['open_hour'] == $row['close_hour'] and $row['open_minute'] == $row['close_minute'])
 				{
 					$hours = "None";
@@ -140,7 +140,10 @@ $month_names = [
 					}
 					
 					$hours = $open . " – " . $close;
+					$count++;
 				}
+				
+				$day = $weekday_names[$row['weekday_id']];
 			?>
 
 			<div class="flex justify-between items-center p-4">
@@ -151,20 +154,18 @@ $month_names = [
 				<span class="text-gray-700">
 					<?php echo $hours; ?>
 				</span>
-			</div>
+			<?= ($count !== 7) ? '</div>' : '' ?>
 
 			<?php endforeach; ?>
-		</div>
-
-		<div class="flex flex-col mt-1">
-			<a href="/edit-lighting-schedule.php" 
-			   class="w-full py-5 text-xl font-medium mb-6
-					  bg-yellow-400 text-black rounded-xl
-					  hover:bg-yellow-500 active:scale-95
-					  transition block text-center">
-				Edit Lighting Schedule
-			</a>
-			
+			<div class="mt-auto p-4">
+				<a href="edit-lighting-schedule.php" id="toggle-info"
+					class="px-4 py-3 bg-yellow-400 rounded-xl
+					hover:bg-yellow-500 active:scale-95
+					transition flex items-center justify-center">
+					<img src="/assets/pencil.svg" alt="Edit" class="w-6 h-6">
+					</a>
+			</div>
+			<?= ($count == 7) ? '</div>' : '' ?>
 		</div>
 	</div>
 	
@@ -224,26 +225,26 @@ $month_names = [
 				</div>
 
 				<!-- Second row -->
-				<div>
+				<div class="mb-2">
 					<span class="text-gray-700">
 						<?php echo "Note: " . $row['note']; ?>
 					</span>
+				</div>
+				
+				<div class="relative">
+						<?php
+							echo '<a href="edit-event.php?event_id=' . $row['event_id'] . '" id="toggle-info"
+									class="px-4 py-3 bg-yellow-400 rounded-xl
+									hover:bg-yellow-500 active:scale-95
+									transition flex items-center justify-center">
+									<img src="/assets/pencil.svg" alt="Edit" class="w-6 h-6">
+								</a>';
+						?>
 				</div>
 
 			</div>
 			<?php endforeach; ?>
 		</div>
-
-		<div class="flex flex-col mt-1">
-			<a href="/edit-event-schedule.php" 
-			   class="w-full py-5 text-xl font-medium 
-					  bg-yellow-400 text-black rounded-xl
-					  hover:bg-yellow-500 active:scale-95
-					  transition block text-center">
-				Edit Event Schedule
-			</a>
-		</div>
-		
 	</div>
 	
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">

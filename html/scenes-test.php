@@ -79,6 +79,8 @@ $behavior_names = [
             <div id="info-box"
                  class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
                 <p class="text-gray-700">
+                    All of your scenes are listed here.
+                    <br><br>
                     Scenes include a lighting behavior, some colors, a brightness setting, and a speed setting.
                     <br><br>
                     Scene 1 (Default) will play during the lighting hours you schedule. It can modified but not removed.
@@ -129,7 +131,7 @@ $behavior_names = [
 				
 				<!-- show color images -->
 				<div class= "mb-2">
-					<span class="flex flex-wrap items-center gap-1">
+					<span class="flex flex-wrap justify-start items-center gap-1">
 						<?php for ($i = 0; $i < 10; $i++): ?>
 							<?php
 								$key = "color" . $i;
@@ -139,15 +141,14 @@ $behavior_names = [
 							?>
 							<img src="/assets/colors/<?= $color_name; ?>.svg"
 								 alt="<?= $color_name; ?>"
-								 class="w-7 h-7">
+								 class="w-8 h-8">
 							<?php endif; ?>
 						<?php endfor; ?>
 					</span>
 				</div>
-				
-				<!-- edit button for each scene -->
 				<div class="relative">
-						<?='<a href="edit-scene.php?scene_id=' . $row['scene_id'] . '" id="toggle-info"
+						<?php
+							echo '<a href="edit-scenes.php?scene_id=' . $row['scene_id'] . '" id="toggle-info"
 									class="px-4 py-3 bg-yellow-400 rounded-xl
 									hover:bg-yellow-500 active:scale-95
 									transition flex items-center justify-center">

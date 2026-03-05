@@ -123,7 +123,7 @@ catch (PDOException $e)
 				</div>
 				<div class="relative">
 						<?php
-							echo '<a href="edit-connections.php?connection_id=' . $row['connection_id'] . '" id="toggle-info"
+							echo '<a href="edit-connection.php?connection_id=' . $row['connection_id'] . '" id="toggle-info"
 									class="px-4 py-3 bg-yellow-400 rounded-xl
 									hover:bg-yellow-500 active:scale-95
 									transition flex items-center justify-center">
@@ -150,6 +150,5 @@ catch (PDOException $e)
         infoBox.classList.toggle('hidden');
     });
 </script>
-
 </body>
 </html>
