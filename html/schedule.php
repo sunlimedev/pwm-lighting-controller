@@ -86,7 +86,7 @@ $month_names = [
 			<!-- Button container -->
 			<div class="relative pr-1">
             <a href="#" id="toggle-info1"
-               class="px-4 py-3 bg-purple-400 rounded-xl
+               class="px-4 py-3 bg-purple-400 w-20 rounded-xl
                       hover:bg-purple-500 active:scale-95
                       transition flex items-center justify-center">
                 <img src="/assets/help.svg"
@@ -174,11 +174,21 @@ $month_names = [
 			<h1 class="text-3xl font-semibold p-1">
 				Event Schedule
 			</h1>
-		
+			
+			<a href="/add-event.php" 
+			class="px-4 py-3 bg-blue-400 w-20 rounded-xl
+					hover:bg-blue-500 active:scale-95
+					transition flex items-center
+					justify-center"> 
+				<img src="/assets/plus.svg" 
+					alt="Add scene" 
+					class="w-12 h-6">
+			</a>
+			
 			<!-- Button container -->
         <div class="relative">
             <a href="#" id="toggle-info2"
-               class="px-4 py-3 bg-purple-400 rounded-xl
+               class="px-4 py-3 bg-purple-400 w-20 rounded-xl
                       hover:bg-purple-500 active:scale-95
                       transition flex items-center justify-center">
                 <img src="/assets/help.svg"

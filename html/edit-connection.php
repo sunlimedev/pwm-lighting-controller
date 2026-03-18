@@ -124,7 +124,7 @@ catch (PDOException $e)
 		
 			<div class="relative pr-1">
 				<a href="#" id="toggle-info"
-					class="px-4 py-3 bg-purple-400 rounded-xl
+					class="px-4 py-3 bg-purple-400 w-20 rounded-xl
 					hover:bg-purple-500 active:scale-95
 					transition flex items-center justify-center">
 					<img src="/assets/help.svg"
@@ -136,7 +136,7 @@ catch (PDOException $e)
 				<div id="info-box"
 					class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
 					<p class="text-gray-800">
-						Placeholder.
+						<?php echo "Select which of your scenes will play when Connection " . $connection_id . " is active."?>
 					</p>
 				</div>
 			</div>
@@ -152,7 +152,7 @@ catch (PDOException $e)
 					<input type="hidden" name="connection_id" value="<?= $connection_id ?>">
 					
 					<div class="font-medium">
-						<label for="scene">Linked Scene:</label><br>
+						<label for="scene">Linked Scene</label><br>
 						<select class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="scene" name="scene"><br>
 							<optgroup label="User Scenes">
 								<?php foreach ($rows2 as $row): ?>
@@ -171,20 +171,20 @@ catch (PDOException $e)
 					</div>
 					
 					<div class="font-medium">
-						<label for="note">Note:</label><br>
-						<input class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="note" name="note" value="<?php echo htmlspecialchars($rows1['note']);?>">
+						<label for="note">Note</label><br>
+						<input class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="note" name="note" value="<?php echo htmlspecialchars($rows1['note']);?>" maxlength="150">
 					</div>
 					<div class="flex justify-between items-center mt-2">
 							<a href="/connections.php" 
-								class="px-4 py-3 bg-red-400 rounded-xl
-								hover:bg-red-500 active:scale-95
+								class="px-4 py-3 bg-yellow-400 w-20 rounded-xl
+								hover:bg-yellow-500 active:scale-95
 								transition flex items-center justify-center">
 								Cancel
 							</a>
 											
-							<input class="px-4 py-3 bg-green-400 rounded-xl
+							<input class="px-4 py-3 bg-green-400 w-20 rounded-xl
 								hover:bg-green-500 active:scale-95
-								transition flex items-center justify-center" type="submit" value="Submit">
+								transition flex items-center justify-center" type="submit" value="Save">
 					</div>
 					</form>
 				</div>

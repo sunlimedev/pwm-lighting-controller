@@ -13,9 +13,16 @@ try
     $rows1 = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 	// statement object is a container holding result of query
-    $stmt = $db->query("SELECT name FROM scenes ORDER BY scene_id ASC");
+    $stmt = $db->query("SELECT scene_id, name FROM scenes ORDER BY scene_id ASC");
     // extract each row as an array of values
     $rows2 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // make scene_id name key value pair array
+    $scenes = [];
+	foreach ($rows2 as $row)
+	{
+		$scenes[$row['scene_id']] = $row['name'];
+	}   
 }
 // catch block to handle error
 catch (PDOException $e)
@@ -52,18 +59,18 @@ catch (PDOException $e)
 			</h1>
 
 			<a href="/connections.php" 
-			class="px-4 py-3 bg-blue-400 rounded-xl
+			class="px-4 py-3 bg-blue-400 w-20 rounded-xl
 					hover:bg-blue-500 active:scale-95
 					transition flex items-center
 					justify-center"> 
 				<img src="/assets/refresh.svg" 
 					alt="Refresh" 
-					class="w-12 h-6">
+					class="w-8 h-6">
 			</a>
 			
 			<div class="relative pr-1">
 				<a href="#" id="toggle-info"
-					class="px-4 py-3 bg-purple-400 rounded-xl
+					class="px-4 py-3 bg-purple-400 w-20 rounded-xl
                       hover:bg-purple-500 active:scale-95
                       transition flex items-center justify-center">
                 <img src="/assets/help.svg"
@@ -77,7 +84,7 @@ catch (PDOException $e)
 					<p class="text-gray-700">
 						Connections turn green when active, and only one connection may be active at any time.
 						<br><br>
-						The lowest connection number has priority. For example, if connections 2 and 4 both receive power, only connection 2 will be active.
+						The lowest connection number has priority. For example, if connections 2 and 4 receive power simultaneously, only connection 2 will be active.
 						<br><br>
 						If you are integrating this system with other devices, send 24VDC power to a connection, then hit the blue refresh button to check your wiring.
 					</p>
@@ -110,8 +117,8 @@ catch (PDOException $e)
 
 					<span class="text-right">
 						<?php
-							$index = (int) $row['scene'] - 1;
-							echo "Scene: " . $rows2[$index]['name'];
+							$index = (int) $row['scene'];
+							echo "Scene: " . $scenes[$index];
 						?>
 					</span>
 				</div>

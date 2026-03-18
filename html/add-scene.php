@@ -1,56 +1,4 @@
 <?php
-// check if the key exists in the URL
-if (isset($_GET['scene_id']))
-{
-    // ensure scene id is a valid integer
-    $scene_id = filter_var($_GET['scene_id'], FILTER_VALIDATE_INT);
-	
-	// connect to lighting.db
-    $db = new PDO('sqlite:/home/user/project/database/lighting.db');
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-	// get valid scene numbers
-	$stmt = $db->query("SELECT scene_id FROM scenes");
-	$valid_scene_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
-	
-	// get specific scene's info
-    $stmt = $db->prepare("SELECT color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 FROM scenes WHERE scene_id = :id");
-    // bind value ???
-    $stmt->execute(['id' => $scene_id]);
-    // store info in rows1
-    $color_row = $stmt->fetch(PDO::FETCH_ASSOC);
-	
-	// remove null colors
-	$preselected = [];
-
-	for ($i = 0; $i < 10; $i++)
-	{
-		$key = "color" . $i;
-
-		if (!empty($color_row[$key]))
-		{
-			$preselected[] = (int)$color_row[$key];
-		}
-		else
-		{
-			break;
-		}
-	}
-	
-	// redirect if there is an issue
-    if ($scene_id == false or in_array($scene_id, $valid_scene_ids) == false)
-    {
-		header("Location: /scenes.php");
-		exit;
-    }
-}
-// redirect if there is no key
-else
-{
-    header("Location: /scenes.php");
-    exit;
-}
-
 // form name to db name
 $behavior_names_to_db = [
 	"Sequence - Solid"   => "sequence_solid",
@@ -176,6 +124,9 @@ try
     $stmt = $db->query("SELECT * FROM colors ORDER BY color_id ASC");
     // store all color's info in rows2
     $rows2 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // no colors preselected for add scene
+    $preselected = [];
 }
 // catch block to handle error
 catch (PDOException $e)
@@ -190,42 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 {
 	// check that submitted id is valid
 	$scene_id = filter_input(INPUT_POST, 'scene_id', FILTER_VALIDATE_INT);
-	
-	// delete button logic
-	if (isset($_POST['delete_scene']))
-	{
-		try
-		{
-			$db->beginTransaction();
-
-			// Step 1: reset connections to default scene (assume 1)
-			$stmt = $db->prepare("
-				UPDATE connections
-				SET scene = 1
-				WHERE scene = :id
-			");
-			$stmt->execute([':id' => $scene_id]);
-
-			// Step 2: delete the scene
-			$stmt = $db->prepare("
-				DELETE FROM scenes
-				WHERE scene_id = :id
-			");
-			$stmt->execute([':id' => $scene_id]);
-
-			$db->commit();
-
-			header("Location: /scenes.php");
-			exit;
-		}
-		catch (PDOException $e)
-		{
-			$db->rollBack();
-			echo "Database error: " . $e->getMessage();
-			exit;
-		}
-	}
-	
+		
 	// gather other scene parameters
 	$name = trim($_POST['name']);
     $behavior = $_POST['behavior'];
@@ -256,22 +172,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
             $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
             $stmt = $db->prepare("
-                UPDATE scenes
-                SET name = :name,
-                    behavior = :behavior,
-                    brightness = :brightness,
-                    speed = :speed,
-                    color0 = :color0,
-                    color1 = :color1,
-                    color2 = :color2,
-                    color3 = :color3,
-                    color4 = :color4,
-                    color5 = :color5,
-                    color6 = :color6,
-                    color7 = :color7,
-                    color8 = :color8,
-                    color9 = :color9
-                WHERE scene_id = :id
+                INSERT INTO scenes (
+					name,
+                    behavior,
+                    brightness,
+                    speed,
+                    color0,
+                    color1,
+                    color2,
+                    color3,
+                    color4,
+                    color5,
+                    color6,
+                    color7,
+                    color8,
+                    color9
+				)
+				VALUES
+				(
+					:name,
+                    :behavior,
+                    :brightness,
+                    :speed,
+                    :color0,
+                    :color1,
+                    :color2,
+                    :color3,
+                    :color4,
+                    :color5,
+                    :color6,
+                    :color7,
+                    :color8,
+                    :color9
+				)
             ");
 
             $stmt->execute([
@@ -279,7 +212,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
                 ':behavior' => $behavior,
                 ':brightness' => $brightness,
                 ':speed' => $speed,
-                ':id' => $scene_id,
                 ':color0' => $colors[0],
                 ':color1' => $colors[1],
                 ':color2' => $colors[2],
@@ -311,7 +243,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Edit Scene</title>
+	<title>Add Scene</title>
 	<link rel="stylesheet" href="/css/tailwind.min.css">
 </head>
 
@@ -330,7 +262,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 	<div class="max-w-md mx-auto p-1">
 		<div class="flex justify-between items-center mb-2">
 			<h1 class="text-3xl font-semibold p-1">
-				Edit Scene
+				New Scene
 			</h1>
 
 			<!-- Floating popup -->
@@ -362,36 +294,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 			<div class="p-4">
 				<form method="POST">
 					
-					<!-- hidden scene_id integer -->
-					<input type="hidden" name="scene_id" value="<?= $scene_id ?>">
-					
 					<!-- name field with read only for default scene -->
 					<div class="font-medium">
 						<label for="name">Name</label><br>
-						<input <?= ($scene_id == 1) ? 'readonly' : '' ?>
-							class="w-full <?= ($scene_id == 1) ? 'bg-gray-50' : '' ?> border border-gray-200 rounded-xl px-4 py-3 mb-2"
+						<input
+							class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-2"
 							type="text"
 							id="name"
 							name="name"
-							value="<?= htmlspecialchars($rows1['name']); ?>"
-							maxlength = "30">
+							value=""
+							maxlength="30">
 					</div>
-						
+
 					<!-- behavior select dropdown with prefilled behavior string -->
 					<div class="font-medium">
 						<label for="behavior">Behavior</label><br>
 						<select class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="behavior" name="behavior"><br>
 							<optgroup label="Behavior">
 								<?php for ($i = 0; $i < 9; $i++): ?>
-									<?php if ($int_to_behavior_names_db[$i] == $rows1['behavior']): ?>
-										<option selected="selected" value="<?= $int_to_behavior_names_styled[$i]; ?>">
-											<?= $int_to_behavior_names_styled[$i]; ?>
-										</option>
-									<?php else: ?>
-										<option value="<?= $int_to_behavior_names_styled[$i]; ?>">
-											<?= $int_to_behavior_names_styled[$i]; ?>
-										</option>
-									<?php endif; ?>
+									<option value="<?= $int_to_behavior_names_styled[$i]; ?>">
+										<?= $int_to_behavior_names_styled[$i]; ?>
+									</option>
 								<?php endfor; ?>
 							</optgroup>
 						</select>
@@ -401,7 +324,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 					<div class="font-medium">
 						<label for="brightness">Brightness</label><br>
 						<div class="bg-white border border-gray-200 rounded-xl px-4 pt-3 mb-2">
-							<input class="w-full" type="range" id="brightness" name="brightness" min="1" max="5" value="<?= $rows1['brightness']; ?>" step="1"/>
+							<input class="w-full" type="range" id="brightness" name="brightness" min="1" max="5" value="5" step="1"/>
 							<div class="flex justify-between items-center pl-1 pr-1 mb-2">
 								<span>1</span>
 								<span>2</span>
@@ -416,7 +339,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 					<div class="font-medium">
 						<label for="speed">Speed</label><br>
 						<div class="bg-white border border-gray-200 rounded-xl px-4 pt-3 mb-2">
-							<input class="w-full" type="range" id="speed" name="speed" min="1" max="5" value="<?= $rows1['speed']; ?>" step="1"/>
+							<input class="w-full" type="range" id="speed" name="speed" min="1" max="5" value="3" step="1"/>
 							<div class="flex justify-between items-center pl-1 pr-1 mb-2">
 								<span>1</span>
 								<span>2</span>
@@ -457,19 +380,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 
 					<!-- save, delete, and cancel buttons -->
 					<div class="flex justify-between items-center mt-4">
-						<?php if($scene_id != 1)
-						{
-							echo '<button
-							type="submit"
-							name="delete_scene"
-							value="1"
-							onclick="return confirm("Delete this scene?");"
-							class="px-4 py-3 bg-red-400 w-20 rounded-xl hover:bg-red-500 transition">
-							Delete
-							</button>';
-						}
-						?>
-						
 						<a href="/scenes.php" 
 							class="px-4 py-3 bg-yellow-400 2-20 rounded-xl
 								hover:bg-yellow-500 active:scale-95
@@ -477,10 +387,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 								Cancel
 						</a>
 						
-						
 						<input class="px-4 py-3 bg-green-400 w-20 rounded-xl
 								hover:bg-green-500 active:scale-95
-								transition" type="submit" value="Save">
+								transition" type="submit" value="Add">
 					</div>
 				</form>
 			</div>

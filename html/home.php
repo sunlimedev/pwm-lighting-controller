@@ -1,4 +1,6 @@
-<?php ?>
+<?php 
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -27,7 +29,7 @@
 		
 			<div class="relative pr-1">
             <a href="#" id="toggle-info"
-               class="px-4 py-3 bg-purple-400 rounded-xl
+               class="px-4 py-3 bg-purple-400 w-20 rounded-xl
                       hover:bg-purple-500 active:scale-95
                       transition flex items-center justify-center">
                 <img src="/assets/help.svg"
