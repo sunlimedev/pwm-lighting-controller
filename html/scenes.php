@@ -109,14 +109,14 @@ $behavior_names = [
 
 			<div class="p-4">
 				<div class="flex justify-between items-center">
-					<span class="font-medium">
+					<span class="font-medium text-left whitespace-nowrap pr-8">
 						<?php
 							echo "Scene " . $count;
 							$count++;
 						?>
 					</span>
 
-					<span class="text-right">
+					<span class="font-medium text-right truncate">
 						<?php echo $row['name']; ?>
 					</span>
 				</div>

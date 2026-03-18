@@ -172,7 +172,7 @@ catch (PDOException $e)
 					
 					<div class="font-medium">
 						<label for="note">Note</label><br>
-						<input class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="note" name="note" value="<?php echo htmlspecialchars($rows1['note']);?>" maxlength="150">
+						<input class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="note" name="note" value="<?php echo htmlspecialchars($rows1['note']);?>" maxlength="200">
 					</div>
 					<div class="flex justify-between items-center mt-2">
 							<a href="/connections.php" 

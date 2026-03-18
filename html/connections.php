@@ -123,7 +123,7 @@ catch (PDOException $e)
 					</span>
 				</div>
 			
-				<div class="mb-2">
+				<div class="mb-2 break-words">
 						<span class="text-gray-700">
 						<?php echo "Note: " . $row['note']; ?>
 						</span>
