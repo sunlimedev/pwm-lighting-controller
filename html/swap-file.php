@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Lighting Hours Test</title>
-    <link rel="stylesheet" href="tailwind.min.css">
+    <link rel="stylesheet" href="/css/tailwind.min.css">
 </head>
 <body class="bg-gray-100 p-6">
 
@@ -32,11 +32,17 @@
         <div class="flex justify-between items-center">
             <span class="font-medium"><?= $day ?></span>
 
-            <label class="flex items-center gap-2">
-                <input type="checkbox"
-                       class="allDay w-4 h-4">
-                <span>All Day</span>
-            </label>
+            <div class="flex gap-3">
+                <label class="flex items-center gap-1">
+                    <input type="checkbox" class="allDay w-4 h-4">
+                    <span>All Day</span>
+                </label>
+
+                <label class="flex items-center gap-1">
+                    <input type="checkbox" class="noneDay w-4 h-4">
+                    <span>None</span>
+                </label>
+            </div>
         </div>
 
         <!-- Opening -->
@@ -92,30 +98,41 @@
 
     </form>
 
-    <!-- Debug output -->
+    <!-- Debug -->
     <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-        <pre class="mt-4 bg-gray-100 p-2 text-xs overflow-x-auto">
-<?php print_r($_POST); ?>
-        </pre>
+        <pre class="mt-4 bg-gray-100 p-2 text-xs"><?php print_r($_POST); ?></pre>
     <?php endif; ?>
 
 </div>
 
 <script>
-document.querySelectorAll(".allDay").forEach(cb => {
-    cb.addEventListener("change", function () {
+document.querySelectorAll("[id^='day-']").forEach(container => {
 
-        const container = this.closest("[id^='day-']");
+    const allDay = container.querySelector(".allDay");
+    const noneDay = container.querySelector(".noneDay");
 
-        const openHour = container.querySelector(".open_hour");
-        const openMinute = container.querySelector(".open_minute");
-        const openAMPM = container.querySelector(".open_ampm");
+    const openHour = container.querySelector(".open_hour");
+    const openMinute = container.querySelector(".open_minute");
+    const openAMPM = container.querySelector(".open_ampm");
 
-        const closeHour = container.querySelector(".close_hour");
-        const closeMinute = container.querySelector(".close_minute");
-        const closeAMPM = container.querySelector(".close_ampm");
+    const closeHour = container.querySelector(".close_hour");
+    const closeMinute = container.querySelector(".close_minute");
+    const closeAMPM = container.querySelector(".close_ampm");
 
+    function disableAll(state) {
+        openHour.disabled = state;
+        openMinute.disabled = state;
+        openAMPM.disabled = state;
+
+        closeHour.disabled = state;
+        closeMinute.disabled = state;
+        closeAMPM.disabled = state;
+    }
+
+    allDay.addEventListener("change", function () {
         if (this.checked) {
+            noneDay.checked = false;
+
             // 12:00 AM → 11:59 PM
             openHour.value = "12";
             openMinute.value = "00";
@@ -125,23 +142,31 @@ document.querySelectorAll(".allDay").forEach(cb => {
             closeMinute.value = "59";
             closeAMPM.value = "PM";
 
-            openHour.disabled = true;
-            openMinute.disabled = true;
-            openAMPM.disabled = true;
-
-            closeHour.disabled = true;
-            closeMinute.disabled = true;
-            closeAMPM.disabled = true;
+            disableAll(true);
         } else {
-            openHour.disabled = false;
-            openMinute.disabled = false;
-            openAMPM.disabled = false;
-
-            closeHour.disabled = false;
-            closeMinute.disabled = false;
-            closeAMPM.disabled = false;
+            disableAll(false);
         }
     });
+
+    noneDay.addEventListener("change", function () {
+        if (this.checked) {
+            allDay.checked = false;
+
+            // 12:00 AM → 12:00 AM
+            openHour.value = "12";
+            openMinute.value = "00";
+            openAMPM.value = "AM";
+
+            closeHour.value = "12";
+            closeMinute.value = "00";
+            closeAMPM.value = "AM";
+
+            disableAll(true);
+        } else {
+            disableAll(false);
+        }
+    });
+
 });
 </script>
 
