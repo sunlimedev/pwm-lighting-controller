@@ -7,7 +7,7 @@ home.php
 ├── schedule.php
 |    ├── add-event.php
 |    ├── edit-event.php
-|    └── edit-lighting-hours.php
+|    └── edit-lighting-schedule.php
 ├── setup-guide.php
 └── settings.php
      └── set-clock.php
