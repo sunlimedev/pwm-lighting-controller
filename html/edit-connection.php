@@ -54,6 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
                 ':id' => $connection_id
             ]);
 
+			$db->commit();
+
             header("Location: /connections.php");
             exit;
 
