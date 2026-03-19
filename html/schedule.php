@@ -234,7 +234,6 @@ $month_names = [
 				$month = $month_names[substr($row['date'], 5, 2)];
 				$day = substr($row['date'], 8, 2);
 				$year = substr($row['date'], 0, 4);
-				
 			?>
 
 			<div class="p-4">

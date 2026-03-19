@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
     $scene = filter_input(INPUT_POST, 'scene', FILTER_VALIDATE_INT);
     $note = trim($_POST['note']);
 
-    if ($connection_id && $scene !== false)
+    if ($connection_id !== false && $scene !== false)
     {
         try
         {
