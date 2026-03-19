@@ -198,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 		{
 			$db->beginTransaction();
 
-			// Step 1: reset connections to default scene (assume 1)
+			// Step 1: reset connections to default scene
 			$stmt = $db->prepare("
 				UPDATE connections
 				SET scene = 1
@@ -206,6 +206,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 			");
 			$stmt->execute([':id' => $scene_id]);
 
+			// reset events to default scene
+			$stmt = $db->prepare("
+				UPDATE events
+				SET scene = 1
+				WHERE scene = :id
+			");
+			$stmt->execute([':id' => $scene_id]);
+	
 			// Step 2: delete the scene
 			$stmt = $db->prepare("
 				DELETE FROM scenes
@@ -292,9 +300,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
                 ':color9' => $colors[9]
             ]);
 
-			$db->commit();
-
-
             header("Location: /scenes.php");
             exit;
 
@@ -372,7 +377,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 					<div class="font-medium">
 						<label for="name">Name</label><br>
 						<input <?= ($scene_id == 1) ? 'readonly' : '' ?>
-							class="w-full <?= ($scene_id == 1) ? 'bg-gray-50' : '' ?> border border-gray-200 rounded-xl px-4 py-3 mb-2"
+							class="w-full <?= ($scene_id == 1) ? 'bg-gray-100' : '' ?> border border-gray-200 rounded-xl px-4 py-3 mb-2"
 							type="text"
 							id="name"
 							name="name"
@@ -460,8 +465,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 
 					<!-- save, delete, and cancel buttons -->
 					<div class="flex justify-between items-center mt-4">
+						<a href="/scenes.php" 
+							class="px-4 py-3 bg-yellow-400 2-20 rounded-xl
+								hover:bg-yellow-500 active:scale-95
+								transition">
+								Cancel
+						</a>
+						
 						<?php if($scene_id != 1)
-						{
+						{   // placeholder -- do we need onclick idk
 							echo '<button
 							type="submit"
 							name="delete_scene"
@@ -472,14 +484,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 							</button>';
 						}
 						?>
-						
-						<a href="/scenes.php" 
-							class="px-4 py-3 bg-yellow-400 2-20 rounded-xl
-								hover:bg-yellow-500 active:scale-95
-								transition">
-								Cancel
-						</a>
-						
 						
 						<input class="px-4 py-3 bg-green-400 w-20 rounded-xl
 								hover:bg-green-500 active:scale-95

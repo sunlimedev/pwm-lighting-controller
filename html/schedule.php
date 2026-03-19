@@ -18,9 +18,16 @@ try
     $rows2 = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 	// statement object is a container holding result of query
-    $stmt = $db->query("SELECT name FROM scenes ORDER BY scene_id ASC");
+    $stmt = $db->query("SELECT scene_id, name FROM scenes ORDER BY scene_id ASC");
     // extract each row as an array of values
     $rows3 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // make scene_id name key value pair array
+    $scenes = [];
+	foreach ($rows3 as $row)
+	{
+		$scenes[$row['scene_id']] = $row['name'];
+	}   
 }
 // catch block to handle error
 catch (PDOException $e)
@@ -127,14 +134,25 @@ $month_names = [
 						$open = sprintf("%2d:%02dp", $row['open_hour'] - 12, $row['open_minute']);
 					} elseif($row['open_hour'] == 12) {
 						$open = sprintf("%2d:%02dp", $row['open_hour'], $row['open_minute']);
+					} elseif($row['open_hour'] == 0) {
+						$open = sprintf("%2d:%02da", $row['open_hour'] + 12, $row['open_minute']);
 					} else {
 						$open = sprintf("%2d:%02da", $row['open_hour'], $row['open_minute']);
 					}
 				
 					if($row['close_hour'] > 12) {
-						$close = sprintf("%2d:%02dp", $row['close_hour'] - 12, $row['close_minute']);
+						if($row['close_hour'] == 24 and $row['close_minute'] == 0)
+						{
+							$close = "11:59p";
+						}
+						else
+						{
+							$close = sprintf("%2d:%02dp", $row['close_hour'] - 12, $row['close_minute']);
+						}
 					} elseif($row['close_hour'] == 12) {
 						$close = sprintf("%2d:%02dp", $row['close_hour'], $row['close_minute']);
+					} elseif($row['close_hour'] == 0) {
+						$close = sprintf("%2d:%02da", $row['close_hour'] + 12, $row['close_minute']);
 					} else {
 						$close = sprintf("%2d:%02da", $row['close_hour'], $row['close_minute']);
 					}
@@ -154,18 +172,19 @@ $month_names = [
 				<span class="text-gray-700">
 					<?php echo $hours; ?>
 				</span>
-			<?= ($count !== 7) ? '</div>' : '' ?>
+			</div>
 
 			<?php endforeach; ?>
 			<div class="mt-auto p-4">
-				<a href="edit-lighting-schedule.php" id="toggle-info"
-					class="px-4 py-3 bg-yellow-400 rounded-xl
-					hover:bg-yellow-500 active:scale-95
-					transition flex items-center justify-center">
-					<img src="/assets/pencil.svg" alt="Edit" class="w-6 h-6">
-					</a>
+				<span>
+					<a href="edit-lighting-schedule.php" id="toggle-info"
+						class="px-4 py-3 bg-yellow-400 rounded-xl
+						hover:bg-yellow-500 active:scale-95
+						transition flex items-center justify-center">
+						<img src="/assets/pencil.svg" alt="Edit" class="w-6 h-6">
+						</a>
+				</span>
 			</div>
-			<?= ($count == 7) ? '</div>' : '' ?>
 		</div>
 	</div>
 	
@@ -222,20 +241,20 @@ $month_names = [
 
 				<!-- First row -->
 				<div class="flex justify-between items-center">
-					<span class="font-medium">
+					<span class="font-medium text-left whitespace-nowrap pr-8">
 						<?php echo $month . " " . $day . ", " . $year; ?>
 					</span>
 
-					<span class="text-right">
+					<span class="text-right truncate">
 						<?php
-						$index = (int) $row['scene'] - 1;
-						echo "Scene " . $row['scene'] . ": " . $rows3[$index]['name'];
+							$index = (int) $row['scene'];
+							echo "Scene: " . $scenes[$index];
 						?>
 					</span>
 				</div>
 
 				<!-- Second row -->
-				<div class="mb-2">
+				<div class="mb-2 break-words">
 					<span class="text-gray-700">
 						<?php echo "Note: " . $row['note']; ?>
 					</span>
@@ -260,7 +279,7 @@ $month_names = [
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
 		v1.0 - © 2026 Signal-Tech 
 	</div>
-	
+
 <script>
     const toggleBtn1 = document.getElementById('toggle-info1');
     const infoBox1 = document.getElementById('info-box1');

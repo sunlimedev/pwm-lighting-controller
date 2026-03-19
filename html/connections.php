@@ -101,7 +101,7 @@ catch (PDOException $e)
 
 			<div class="p-4">
 				<div class="flex justify-between items-center">
-					<span class="font-medium">
+					<span class="font-medium text-left whitespace-nowrap pr-8">
 						<?php
 							if($row['is_active'] == 1)
 							{
@@ -115,7 +115,7 @@ catch (PDOException $e)
 						?>
 					</span>
 
-					<span class="text-right">
+					<span class="text-right truncate">
 						<?php
 							$index = (int) $row['scene'];
 							echo "Scene: " . $scenes[$index];

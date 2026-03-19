@@ -91,7 +91,7 @@ $behavior_names = [
 					<p class="text-gray-700">
 						Scenes include a lighting behavior, some colors, a brightness setting, and a speed setting.
 						<br><br>
-						Scene 1 (Default) will play during the lighting hours you schedule. It can modified but not removed.
+						The Default scene will play during the lighting hours you schedule. It can modified but not removed.
 						<br><br>
 						Create or modify other scenes to play when a connection is active or for a special event.
 					</p>
@@ -104,19 +104,11 @@ $behavior_names = [
 	
 		<!-- big container for all of the scenes-->
 		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200">
-			<?php $count = 1; ?>
 			<?php foreach ($rows1 as $row): ?>
 
 			<div class="p-4">
 				<div class="flex justify-between items-center">
-					<span class="font-medium text-left whitespace-nowrap pr-8">
-						<?php
-							echo "Scene " . $count;
-							$count++;
-						?>
-					</span>
-
-					<span class="font-medium text-right truncate">
+					<span class="font-medium text-left truncate">
 						<?php echo $row['name']; ?>
 					</span>
 				</div>
@@ -173,7 +165,7 @@ $behavior_names = [
 	</div>
 	
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
-		v1.0 - © 2026 Signal-Tech 
+		v1.0 - © 2026 Signal-Tech
 	</div>
 
 <script>

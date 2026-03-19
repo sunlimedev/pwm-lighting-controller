@@ -6,9 +6,9 @@ $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 // 1. Prepare the statement
 $stmt = $db->prepare("SELECT * FROM time");
 
-// 2. RUN the statement (This was the missing piece!)
+// 2. RUN the statement
 $stmt->execute();
-$nested_array = $stmt->fetchAll(PDO::FETCH_NUM);
+$nested_array = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 echo "<h1>Times</h1>";
 

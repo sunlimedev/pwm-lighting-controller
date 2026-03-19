@@ -224,8 +224,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
                 ':color9' => $colors[9]
             ]);
 
-	        $db->commit();
-
             header("Location: /scenes.php");
             exit;
 
