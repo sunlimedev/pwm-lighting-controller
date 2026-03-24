@@ -1,6 +1,82 @@
 <?php 
+try
+{
+	// create database object using sqlite driver and file path
+    $db = new PDO('sqlite:/home/user/project/database/lighting.db');
+    // throw error on database failure
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+	// statement object is a container holding result of query
+    $stmt = $db->query("SELECT * FROM clock");
+    // extract each row as an array of values
+    $clock = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // statement object is a container holding result of query
+    $stmt = $db->query("SELECT date FROM events");
+    // extract each row as an array of values
+    $event_dates = $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
+// catch block to handle error
+catch (PDOException $e)
+{
+	// print the error on the webpage
+    echo "Database error: " . $e->getMessage();
+    exit;
+}
+
+$num_events = count($event_dates);
+$date_string = sprintf("%04d-%02d-%02d", $clock['year'], $clock['month'], $clock['day']);
+$minute = sprintf("%02d", $clock['minute']);
+
+if($clock['hour'] == 0)
+{
+	$ampm = "AM";
+	$hour12 = 12;
+}
+elseif($clock['hour'] < 12)
+{
+	$ampm = "AM";
+	$hour12 = $clock['hour'];
+}
+elseif($clock['hour'] == 12)
+{
+	$ampm = "PM";
+	$hour12 = $clock['hour'];
+}
+else
+{
+	$ampm = "PM";
+	$hour12 = $clock['hour'] - 12;
+}
+
+//  show array structure
+/*
+echo "<pre>";
+print_r($clock);
+echo "</pre>";
+
+echo "<pre>";
+print_r($event_dates);
+echo "</pre>";
+*/
+
+$month_names = [
+		1 => "Jan",
+		2 => "Feb",
+		3 => "Mar",
+		4 => "Apr",
+		5 => "May",
+		6 => "Jun",
+		7 => "Jul",
+		8 => "Aug",
+		9 => "Sep",
+		10 => "Oct",
+		11 => "Nov",
+		12 => "Dec"
+];
 ?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -14,11 +90,9 @@
 <body class="bg-gray-100 min-h-screen">
 
 	<div class="text-center py-6">
-		<a href="/home.php" class="inline-block">
-			<img src="/assets/logo.svg" 
-				alt="Logo"
-				class="mx-auto w-48">
-		</a>
+		<img src="/assets/logo.svg" 
+			alt="Logo"
+			class="mx-auto w-48">
 	</div>
 
 	<div class="max-w-md mx-auto p-1">
@@ -47,8 +121,11 @@
             </div>
 		</div>
     </div>
-
-    <div class="max-w-md mx-auto p-1">
+    
+	<div class="max-w-md mx-auto p-1">
+        
+        <!-- show if event is running -->
+		<?= in_array($date_string, $event_dates) ? '<div class="text-red-700 text-left text-xl font-bold p-1 mb-2"> Your Default lighting is currently overridden by a special event. </div>' : '' ?>
         
         <div class="flex flex-col">
 
@@ -94,9 +171,16 @@
             
         </div>
         
+            <!-- add system time -->
+		<div class="text-black text-center text-xl font-bold pl-1 pr-1 mt-4">
+			<?= "System Time: " . $month_names[(int)$clock['month']] . " " . $clock['day'] . ", " . $clock['year'] . " " . $hour12 . ":" . $minute . " " . $ampm; ?>
+		</div>
+        
     </div>
     
-	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
+
+    
+	<div class="text-center text-gray-400 text-sm mt-6 mb-8">
 		v1.0 - © 2026 Signal-Tech 
 	</div>
 

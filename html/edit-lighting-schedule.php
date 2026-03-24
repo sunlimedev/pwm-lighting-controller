@@ -141,12 +141,26 @@ for ($id = 0; $id <= 6; $id++) {
 
 <body class="bg-gray-100 min-h-screen">
 	<!-- logo, header, and tooltip -->
-	<div class="text-center py-6">
-		<a href="/home.php" class="inline-block">
+	<div class="text-center py-6 flex justify-between items-center max-w-md mx-auto pl-7 pr-7">
+		<span>
+			<a href="/schedule.php" class="inline-block">
+				<img src="/assets/back.svg" 
+					alt="Logo"
+					class="mx-auto w-9 h-9 pt-2">
+			</a>
+		</span>
+		<span>
 			<img src="/assets/logo.svg" 
 				alt="Logo"
 				class="mx-auto w-48">
-		</a>
+		</span>
+		<span>
+			<a href="/home.php" class="inline-block">
+				<img src="/assets/home.svg" 
+					alt="Logo"
+					class="mx-auto w-9 h-9 pt-1">
+			</a>
+		</span>
 	</div>
 
 	<div class="max-w-md mx-auto p-1">

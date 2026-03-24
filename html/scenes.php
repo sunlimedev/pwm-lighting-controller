@@ -50,12 +50,26 @@ $behavior_names = [
 
 <body class="bg-gray-100 min-h-screen">
 	
-	<div class="text-center py-6">
-		<a href="/home.php" class="inline-block">
+	<div class="text-center py-6 flex justify-between items-center max-w-md mx-auto pl-7 pr-7">
+		<span>
+			<a href="/home.php" class="inline-block">
+				<img src="/assets/back.svg" 
+					alt="Logo"
+					class="mx-auto w-9 h-9 pt-2">
+			</a>
+		</span>
+		<span>
 			<img src="/assets/logo.svg" 
 				alt="Logo"
 				class="mx-auto w-48">
-		</a>
+		</span>
+		<span>
+			<a href="/home.php" class="inline-block">
+				<img src="/assets/home.svg" 
+					alt="Logo"
+					class="mx-auto w-9 h-9 pt-1">
+			</a>
+		</span>
 	</div>
 
 	<div class="max-w-md mx-auto p-1">
@@ -104,29 +118,30 @@ $behavior_names = [
 	
 		<!-- big container for all of the scenes-->
 		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200">
+			<?php $count = 0; ?>
 			<?php foreach ($rows1 as $row): ?>
-
-			<div class="p-4">
+			
+			<div class="p-4 <?= ($count == 0) ? 'bg-blue-100' : '' ?>">
 				<div class="flex justify-between items-center">
-					<span class="font-medium text-left truncate">
+					<span class="text-left truncate <?= ($count == 0) ? 'text-2xl font-bold' : 'font-medium' ?>">
 						<?php echo $row['name']; ?>
 					</span>
 				</div>
 				
 				<div>
-					<span class="text-gray-700">
+					<span class="<?= ($count == 0) ? 'font-medium' : 'text-gray-700' ?>">
 						<?php echo "Behavior: " . $behavior_names[$row['behavior']]; ?>
 					</span>
 				</div>
 				
 				<div>
-					<span class="text-gray-700">
+					<span class="<?= ($count == 0) ? 'font-medium' : 'text-gray-700' ?>">
 						<?php echo "Brightness: " . $row['brightness']; ?>
 					</span>
 				</div>
 				
 				<div class = "mb-1">
-					<span class="text-gray-700">
+					<span class="<?= ($count == 0) ? 'font-medium' : 'text-gray-700' ?>">
 						<?php echo "Speed: " . $row['speed']; ?>
 					</span>
 				</div>
@@ -160,6 +175,7 @@ $behavior_names = [
 						?>
 				</div>
 			</div>
+			<?php $count++; ?>
 			<?php endforeach; ?>
 		</div>
 	</div>

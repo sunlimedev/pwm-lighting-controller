@@ -43,18 +43,15 @@ $stmt->execute(['id' => $event_id]);
 // store info in array
 $event_info = $stmt->fetch(PDO::FETCH_ASSOC);
 
-//echo "<pre> event_info";
-//print_r($event_info);
-//echo "</pre>";
-    
+// slice string into parts
+$event_year = (int)substr($event_info['date'], 0, 4);
+$event_month = (int)substr($event_info['date'], 5, 2);
+$event_day = (int)substr($event_info['date'], 8, 2);
+
 // get all scene info
 $stmt = $db->query("SELECT * FROM scenes ORDER BY scene_id ASC");
 // store all scene info in result
 $scenes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-//echo "<pre> scenes";
-//print_r($scenes);
-//echo "</pre>";
 
 // data handling for form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
@@ -88,8 +85,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
     $day = filter_input(INPUT_POST, 'day', FILTER_VALIDATE_INT);
     $note = trim($_POST['note']);
     
+    $days_in_month = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+
+	if ($day > $days_in_month)
+	{
+		die("Invalid date");
+	}
+    
     // make date ISO8601 string YYYY-MM-DD
-    $date_string = sprintf("%0002d-%02d-%02d", $year, $month, $day);
+    $date_string = sprintf("%04d-%02d-%02d", $year, $month, $day);
 
     if ($event_id !== false && $scene !== false)
     {
@@ -108,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 
             $stmt->execute([
                 ':scene' => $scene,
-                ':date' => $date,
+                ':date' => $date_string,
                 ':note' => $note,
                 ':id' => $event_id
             ]);
@@ -137,12 +141,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 
 <body class="bg-gray-100 min-h-screen">
 
-	<div class="text-center py-6">
-		<a href="/home.php" class="inline-block">
+	<div class="text-center py-6 flex justify-between items-center max-w-md mx-auto pl-7 pr-7">
+		<span>
+			<a href="/schedule.php" class="inline-block">
+				<img src="/assets/back.svg" 
+					alt="Logo"
+					class="mx-auto w-9 h-9 pt-2">
+			</a>
+		</span>
+		<span>
 			<img src="/assets/logo.svg" 
 				alt="Logo"
 				class="mx-auto w-48">
-		</a>
+		</span>
+		<span>
+			<a href="/home.php" class="inline-block">
+				<img src="/assets/home.svg" 
+					alt="Logo"
+					class="mx-auto w-9 h-9 pt-1">
+			</a>
+		</span>
 	</div>
 	
 	<div class="max-w-md mx-auto p-1">
@@ -201,41 +219,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 					
 					<div class="font-medium">
 						<label for="note">Note</label><br>
-						<input class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="note" name="note" value="<?php echo htmlspecialchars($rows1['note']);?>" maxlength="200">
+						<input class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="note" name="note" value="<?php echo htmlspecialchars($event_info['note']);?>" maxlength="200">
 					</div>
 					
 					<div class="font-medium">
 						<span class="flex items-center gap-1">
-							<label for="year" class="w-full pr-3">Year</label><br>
-							<label for="month" class="w-full pr-3">Month</label><br>
+							<label for="month" class="w-full">Month</label><br>
 							<label for="day" class="w-full">Day</label><br>
+							<label for="year" class="w-full">Year</label><br>
 						<span>
 					</div>
 					
 					<div class="font-medium">
 						<span class="flex items-center gap-1">
-							<select name="year" class="bg-white border border-gray-200 rounded-xl px-4 py-3 w-full">
-								<?php for ($hr = 1; $hr <= 12; $hr++): ?>
-									<option value="<?= $hr ?>">
-										<?= $hr ?>
-									</option>
-								<?php endfor; ?>
-							</select>
 							<select name="month" class="bg-white border border-gray-200 rounded-xl px-4 py-3 w-full">
-								<?php for($min = 0; $min < 60; $min++): ?>
-									<option value="<?= sprintf('%02d', $min) ?>">
-										<?= sprintf('%02d', $min) ?>
+								<?php for($m = 1; $m <= 12; $m++): ?>
+									<option value="<?= $m ?>" <?= ($event_month == $m) ? 'selected' : '' ?>>
+										<?= $m ?>
 									</option>
 								<?php endfor; ?>
 							</select>
 							<select name="day" class="bg-white border border-gray-200 rounded-xl px-4 py-3 w-full">
-								<option value="AM" <?= ($open_ampm == 'AM') ? 'selected' : '' ?>>AM</option>
-								<option value="PM" <?= ($open_ampm == 'PM') ? 'selected' : '' ?>>PM</option>
+								<?php for($d = 1; $d <= 31; $d++): ?>
+									<option value="<?= $d ?>" <?= ($event_day == $d) ? 'selected' : '' ?>>
+										<?= $d ?>
+									</option>
+								<?php endfor; ?>
+							</select>
+							<select name="year" class="bg-white border border-gray-200 rounded-xl px-4 py-3 w-full">
+								<?php for ($y = 2026; $y <= 2100; $y++): ?>
+									<option value="<?= $y ?>"  <?= ($event_year == $y) ? 'selected' : '' ?>>
+										<?= $y ?>
+									</option>
+								<?php endfor; ?>
 							</select>
 						</span>
 					</div>
 					
-					<div class="flex justify-between items-center mt-2">
+					<div class="flex justify-between items-center mt-4">
 							<a href="/connections.php" 
 								class="px-4 py-3 bg-yellow-400 w-20 rounded-xl
 								hover:bg-yellow-500 active:scale-95
@@ -274,6 +295,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
         e.preventDefault(); // prevent default anchor navigation
         infoBox.classList.toggle('hidden');
     });
+</script>
+
+<!-- this js code renders the correct number of days for each month -->
+<script>
+const monthSelect = document.querySelector("select[name='month']");
+const daySelect   = document.querySelector("select[name='day']");
+const yearSelect  = document.querySelector("select[name='year']");
+
+function isLeapYear(year) {
+    return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+}
+
+function getDaysInMonth(month, year) {
+    if (month === 2) {
+        return isLeapYear(year) ? 29 : 28;
+    }
+
+    if ([4, 6, 9, 11].includes(month)) {
+        return 30;
+    }
+
+    return 31;
+}
+
+function updateDays() {
+    const month = parseInt(monthSelect.value);
+    const year  = parseInt(yearSelect.value);
+
+    const daysInMonth = getDaysInMonth(month, year);
+
+    const currentDay = parseInt(daySelect.value);
+
+    // clear existing options
+    daySelect.innerHTML = "";
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        const option = document.createElement("option");
+        option.value = d;
+        option.textContent = d;
+
+        if (d === currentDay) {
+            option.selected = true;
+        }
+
+        daySelect.appendChild(option);
+    }
+}
+
+// update when month or year changes
+monthSelect.addEventListener("change", updateDays);
+yearSelect.addEventListener("change", updateDays);
+
+// run once on page load
+updateDays();
 </script>
 
 </body>
