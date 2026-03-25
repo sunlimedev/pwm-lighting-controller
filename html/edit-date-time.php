@@ -1,67 +1,61 @@
 <?php
-$db = new PDO('sqlite:/home/user/project/database/lighting.db');
-$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-// get all scene info
-$stmt = $db->query("SELECT * FROM scenes ORDER BY scene_id ASC");
-// store all scene info in result
-$scenes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
 // data handling for form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
 {
-    $scene = filter_input(INPUT_POST, 'scene', FILTER_VALIDATE_INT);
-    $year = filter_input(INPUT_POST, 'year', FILTER_VALIDATE_INT);
-    $month = filter_input(INPUT_POST, 'month', FILTER_VALIDATE_INT);
-    $day = filter_input(INPUT_POST, 'day', FILTER_VALIDATE_INT);
-    $note = trim($_POST['note']);
-    
-    $days_in_month = cal_days_in_month(CAL_GREGORIAN, $month, $year);
-
-	if ($day > $days_in_month)
-	{
-		die("Invalid date");
-	}
-    
-    // make date ISO8601 string YYYY-MM-DD
-    $date_string = sprintf("%04d-%02d-%02d", $year, $month, $day);
-
-    if ($scene !== false)
+    // ensure we can connect to the database
+    try
     {
-        try
-        {
-            $db = new PDO('sqlite:/home/user/project/database/lighting.db');
-            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-            $stmt = $db->prepare("
-                INSERT INTO events (
-					scene,
-                    date,
-                    note
-				)
-				VALUES
-				(
-					:scene,
-					:date,
-					:note
-				)"
-			);
-
-            $stmt->execute([
-                ':scene' => $scene,
-                ':date' => $date_string,
-                ':note' => $note
-            ]);
-
-            header("Location: /schedule.php");
-            exit;
-        }
-        catch (PDOException $e)
-        {
-            echo "Database error: " . $e->getMessage();
-            exit;
-        }
+        $db = new PDO('sqlite:/home/user/project/database/lighting.db');
+        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	}
+	catch (PDOException $e)
+    {
+        echo "Database error: " . $e->getMessage();
+        exit;
     }
+    // valid time set:
+    // python set_rtc.py 2026-10-31T11:59
+    
+    $year = $_POST['year'];
+    $month = $_POST['month'];
+    $day = $_POST['day'];
+    
+    $hour = $_POST['hour'];
+    $minute = $_POST['minute'];
+    $ampm = $_POST['ampm'];
+    
+    // convert to 24hr time
+    if($ampm == "AM")
+    {
+		if($hour == 12)
+		{
+			$hour -= 12;
+		}
+	}
+	else
+	{
+		if($hour != 12)
+		{
+			$hour += 12;
+		}
+	}
+	
+	// create ISO8601 string for python argparser
+    $arg = sprintf("%04d-%02d-%02dT%02d:%02d", $year, $month, $day, $hour, $minute);
+    
+    // get python virtual environment path
+    $venv = "/home/user/project/venv/bin/python";
+    
+    // get set_rtc.py script path
+    $script = "/home/user/project/backend/set_rtc.py";
+    
+    // combine into one command
+    $command = escapeshellcmd($venv . " " . $script . " " . escapeshellarg($arg));
+    
+    shell_exec($command);
+    
+    header("Location: /home.php");
+	exit;
 }
 ?>
 
@@ -71,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Add Event</title>
+	<title>Edit Date & Time</title>
 	<link rel="stylesheet" href="/css/tailwind.min.css">
 </head>
 
@@ -79,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 
 	<div class="text-center py-6 flex justify-between items-center max-w-md mx-auto pl-7 pr-7">
 		<span>
-			<a href="/schedule.php" class="inline-block">
+			<a href="/settings.php" class="inline-block">
 				<img src="/assets/back.svg" 
 					alt="Back"
 					class="mx-auto w-9 h-9 pt-2">
@@ -102,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 	<div class="max-w-md mx-auto p-1">
 		<div class="flex justify-between items-center mb-2">
 			<h1 class="text-3xl font-semibold p-1">
-				Add Event
+				Edit Date & Time
 			</h1>
 		
 			<div class="relative pr-1">
@@ -132,23 +126,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 			<div class="p-4">
 				<div>
 					<form method="POST">					
-					<div class="font-medium">
-						<label for="scene">Linked Scene</label><br>
-						<select class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="scene" name="scene"><br>
-							<optgroup label="User Scenes">
-								<?php foreach ($scenes as $row): ?>
-									<option value="<?= $row['scene_id']; ?>">
-										<?= $row['name']; ?>
-									</option>
-								<?php endforeach; ?>
-							</optgroup>
-						</select>
-					</div>
-					
-					<div class="font-medium">
-						<label for="note">Note</label><br>
-						<input class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="note" name="note" maxlength="200">
-					</div>
 					
 					<div class="font-medium">
 						<span class="flex items-center gap-1">
@@ -157,9 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 							<label for="year" class="w-full">Year</label><br>
 						<span>
 					</div>
-					
 					<div class="font-medium">
-						<span class="flex items-center gap-1">
+						<span class="flex items-center gap-1 mb-2">
 							<select name="month" class="bg-white border border-gray-200 rounded-xl px-4 py-3 w-full">
 								<?php for($m = 1; $m <= 12; $m++): ?>
 									<option value="<?= $m ?>">
@@ -184,6 +160,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 						</span>
 					</div>
 					
+					<div class="font-medium">
+						<span class="flex items-center gap-1">
+							<label for="hour" class="w-full">Hour</label><br>
+							<label for="minute" class="w-full">Minute</label><br>
+							<label for="ampm" class="w-full">AM/PM</label><br>
+						<span>
+					</div>
+					<div>
+						<span class="flex items-center gap-1">
+							<select name="hour" class="bg-white border border-gray-200 rounded-xl px-4 py-3 w-full">
+								<?php for ($hr = 1; $hr <= 12; $hr++): ?>
+									<option value="<?= $hr ?>" <?= ($hr == 8) ? 'selected' : ''?>>
+										<?= $hr ?>
+									</option>
+								<?php endfor; ?>
+							</select>
+							<select name="minute" class="bg-white border border-gray-200 rounded-xl px-4 py-3 w-full">
+								<?php for($min = 0; $min < 60; $min++): ?>
+									<option value="<?= sprintf('%02d', $min) ?>" <?= ($min == 30) ? 'selected' : ''?>>
+										<?= sprintf('%02d', $min) ?>
+									</option>
+								<?php endfor; ?>
+							</select>
+							<select name="ampm" class="bg-white border border-gray-200 rounded-xl px-4 py-3 w-full">
+								<option value="AM">AM</option>
+								<option value="PM">PM</option>
+							</select>
+						</span>
+					</div>
+					
 					<div class="flex justify-between items-center mt-4">
 							<a href="/connections.php" 
 								class="px-4 py-3 bg-yellow-400 w-20 rounded-xl
@@ -194,7 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 											
 							<input class="px-4 py-3 bg-green-400 w-20 rounded-xl
 								hover:bg-green-500 active:scale-95
-								transition flex items-center justify-center" type="submit" value="Add">
+								transition flex items-center justify-center" type="submit" value="Save">
 					</div>
 					</form>
 				</div>

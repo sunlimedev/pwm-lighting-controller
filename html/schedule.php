@@ -80,7 +80,7 @@ $month_names = [
 		<span>
 			<a href="/home.php" class="inline-block">
 				<img src="/assets/back.svg" 
-					alt="Logo"
+					alt="Back"
 					class="mx-auto w-9 h-9 pt-2">
 			</a>
 		</span>
@@ -92,7 +92,7 @@ $month_names = [
 		<span>
 			<a href="/home.php" class="inline-block">
 				<img src="/assets/home.svg" 
-					alt="Logo"
+					alt="Home"
 					class="mx-auto w-9 h-9 pt-1">
 			</a>
 		</span>

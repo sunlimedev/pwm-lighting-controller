@@ -114,9 +114,7 @@ $month_names = [
             <!-- Floating popup -->
             <div id="info-box" class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
                 <p class="text-gray-800">
-					Tap or click on the Signal-Tech logo to return Home from any page.
-					<br><br>
-					The back and forward arrows work on every page.
+					placeholder
                 </p>
             </div>
 		</div>

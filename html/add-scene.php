@@ -254,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 		<span>
 			<a href="/scenes.php" class="inline-block">
 				<img src="/assets/back.svg" 
-					alt="Logo"
+					alt="Back"
 					class="mx-auto w-9 h-9 pt-2">
 			</a>
 		</span>
@@ -266,7 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 		<span>
 			<a href="/home.php" class="inline-block">
 				<img src="/assets/home.svg" 
-					alt="Logo"
+					alt="Home"
 					class="mx-auto w-9 h-9 pt-1">
 			</a>
 		</span>
@@ -317,7 +317,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 							id="name"
 							name="name"
 							value=""
-							maxlength="30">
+							maxlength="100">
 					</div>
 
 					<!-- behavior select dropdown with prefilled behavior string -->

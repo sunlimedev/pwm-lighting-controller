@@ -145,7 +145,7 @@ for ($id = 0; $id <= 6; $id++) {
 		<span>
 			<a href="/schedule.php" class="inline-block">
 				<img src="/assets/back.svg" 
-					alt="Logo"
+					alt="Back"
 					class="mx-auto w-9 h-9 pt-2">
 			</a>
 		</span>
@@ -157,7 +157,7 @@ for ($id = 0; $id <= 6; $id++) {
 		<span>
 			<a href="/home.php" class="inline-block">
 				<img src="/assets/home.svg" 
-					alt="Logo"
+					alt="Home"
 					class="mx-auto w-9 h-9 pt-1">
 			</a>
 		</span>
@@ -233,11 +233,11 @@ for ($id = 0; $id <= 6; $id++) {
                 
 					<div class="flex gap-2">
 						<label class="flex items-center gap-1">
-							<input type="checkbox" class="allDay w-4 h-4" <?= $isAllDay ? 'checked' : '' ?>>
+							<input type="checkbox" class="allDay w-8 h-8" <?= $isAllDay ? 'checked' : '' ?>>
 							<span>All day</span>
 						</label>
 						<label class="flex items-center gap-1">
-							<input type="checkbox" class="noneDay w-4 h-4" <?= $isNone ? 'checked' : '' ?>>
+							<input type="checkbox" class="noneDay w-8 h-8" <?= $isNone ? 'checked' : '' ?>>
 							<span>None</span>
 						</label>
 					</div>
