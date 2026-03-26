@@ -8,10 +8,13 @@ install php-sqlite3
 
 restructure files
 
-sudo chown -R user:www-data /home/user/project/database
+sudo chown -R user:www-data /home/user/project/database    <---- do this with smh and wal open
+sudo chown -R user:www-data /home/user/project/database/factory_settings.db
 sudo chmod 775 /home/user/project/database
 sudo chmod 664 /home/user/project/database/lighting.db
 chmod 755 /home/user
 chmod 755 /home/user/project
+chmod +x /home/user/project/backend/set_rtc.py   <----- dont need this now
 
-create and enable systemd for controller.py and sync_clocks.py
+
+create and enable systemd for controller.py and sync_clocks.py and set_rtc.py

@@ -1,19 +1,16 @@
 <?php 
 try
 {
-	// create database object using sqlite driver and file path
+	// connect to db
     $db = new PDO('sqlite:/home/user/project/database/lighting.db');
-    // throw error on database failure
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-	// statement object is a container holding result of query
+	// get all values from row of clock table
     $stmt = $db->query("SELECT * FROM clock");
-    // extract each row as an array of values
     $clock = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // statement object is a container holding result of query
+    // get all event dates
     $stmt = $db->query("SELECT date FROM events");
-    // extract each row as an array of values
     $event_dates = $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 // catch block to handle error
@@ -48,17 +45,6 @@ else
 	$ampm = "PM";
 	$hour12 = $clock['hour'] - 12;
 }
-
-//  show array structure
-/*
-echo "<pre>";
-print_r($clock);
-echo "</pre>";
-
-echo "<pre>";
-print_r($event_dates);
-echo "</pre>";
-*/
 
 $month_names = [
 		1 => "Jan",
@@ -175,8 +161,6 @@ $month_names = [
 		</div>
         
     </div>
-    
-
     
 	<div class="text-center text-gray-400 text-sm mt-6 mb-8">
 		v1.0 - © 2026 Signal-Tech 

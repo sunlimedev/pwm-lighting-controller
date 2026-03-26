@@ -1,29 +1,33 @@
 <?php
-// data handling for form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST')
-{
-    // ensure we can connect to the database
+	// ensure we can connect to the database
     try
     {
         $db = new PDO('sqlite:/home/user/project/database/lighting.db');
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        
+        // get current database date and time
+		$stmt = $db->prepare("SELECT * FROM clock");
+		$stmt->execute();
+		// store info in timestamp
+		$timestamp = $stmt->fetch(PDO::FETCH_ASSOC);
 	}
 	catch (PDOException $e)
     {
         echo "Database error: " . $e->getMessage();
         exit;
     }
-    // valid time set:
-    // python set_rtc.py 2026-10-31T11:59
+
+// data handling for form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST')
+{
+    $year = (int)$_POST['year'];
+    $month = (int)$_POST['month'];
+    $day = (int)$_POST['day'];
     
-    $year = $_POST['year'];
-    $month = $_POST['month'];
-    $day = $_POST['day'];
-    
-    $hour = $_POST['hour'];
-    $minute = $_POST['minute'];
+    $hour = (int)$_POST['hour'];
+    $minute = (int)$_POST['minute'];
     $ampm = $_POST['ampm'];
-    
+
     // convert to 24hr time
     if($ampm == "AM")
     {
@@ -40,22 +44,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 		}
 	}
 	
-	// create ISO8601 string for python argparser
-    $arg = sprintf("%04d-%02d-%02dT%02d:%02d", $year, $month, $day, $hour, $minute);
-    
-    // get python virtual environment path
-    $venv = "/home/user/project/venv/bin/python";
-    
-    // get set_rtc.py script path
-    $script = "/home/user/project/backend/set_rtc.py";
-    
-    // combine into one command
-    $command = escapeshellcmd($venv . " " . $script . " " . escapeshellarg($arg));
-    
-    shell_exec($command);
-    
-    header("Location: /home.php");
-	exit;
+	// insert new time and raise change flag to signify new user time
+	try
+	{
+		$db->beginTransaction();
+		$db->exec("DELETE FROM clock");
+	
+		$stmt = $db->prepare("
+			INSERT INTO clock (
+				year,
+				month,
+				day,
+				hour,
+				minute,
+				change
+			)
+			VALUES
+			(
+				:year,
+				:month,
+				:day,
+				:hour,
+				:minute,
+				:change
+			)
+		");
+
+		$stmt->execute([
+			':year' => $year,
+			':month' => $month,
+			':day' => $day,
+			':hour' => $hour,
+			':minute' => $minute,
+			':change' => 1
+		]);
+		
+		$db->commit();
+		header("Location: /home.php");
+		exit;
+	}
+	catch (PDOException $e)
+	{
+		// if there is any error stop all changes and revert to safe state
+		$db->rollBack();
+		echo "Database error: " . $e->getMessage();
+		exit;
+	}
 }
 ?>
 
@@ -138,21 +172,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 						<span class="flex items-center gap-1 mb-2">
 							<select name="month" class="bg-white border border-gray-200 rounded-xl px-4 py-3 w-full">
 								<?php for($m = 1; $m <= 12; $m++): ?>
-									<option value="<?= $m ?>">
+									<option value="<?= $m ?>" <?= ($timestamp['month'] == $m) ? 'selected' : ''  ?>>
 										<?= $m ?>
 									</option>
 								<?php endfor; ?>
 							</select>
 							<select name="day" class="bg-white border border-gray-200 rounded-xl px-4 py-3 w-full">
 								<?php for($d = 1; $d <= 31; $d++): ?>
-									<option value="<?= $d ?>">
+									<option value="<?= $d ?>"  <?= ($timestamp['day'] == $d) ? 'selected' : ''  ?>>
 										<?= $d ?>
 									</option>
 								<?php endfor; ?>
 							</select>
 							<select name="year" class="bg-white border border-gray-200 rounded-xl px-4 py-3 w-full">
 								<?php for ($y = 2026; $y <= 2100; $y++): ?>
-									<option value="<?= $y ?>">
+									<option value="<?= $y ?>"  <?= ($timestamp['year'] == $y) ? 'selected' : ''  ?>>
 										<?= $y ?>
 									</option>
 								<?php endfor; ?>
@@ -171,14 +205,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 						<span class="flex items-center gap-1">
 							<select name="hour" class="bg-white border border-gray-200 rounded-xl px-4 py-3 w-full">
 								<?php for ($hr = 1; $hr <= 12; $hr++): ?>
-									<option value="<?= $hr ?>" <?= ($hr == 8) ? 'selected' : ''?>>
+									<option value="<?= $hr ?>" <?= ($timestamp['hour'] == $hr) ? 'selected' : ''  ?>>
 										<?= $hr ?>
 									</option>
 								<?php endfor; ?>
 							</select>
 							<select name="minute" class="bg-white border border-gray-200 rounded-xl px-4 py-3 w-full">
 								<?php for($min = 0; $min < 60; $min++): ?>
-									<option value="<?= sprintf('%02d', $min) ?>" <?= ($min == 30) ? 'selected' : ''?>>
+									<option value="<?= sprintf('%02d', $min) ?>" <?= ($timestamp['minute'] == $min) ? 'selected' : ''  ?>>
 										<?= sprintf('%02d', $min) ?>
 									</option>
 								<?php endfor; ?>
