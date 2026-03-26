@@ -13,7 +13,6 @@ try
     $stmt = $db->query("SELECT date FROM events");
     $event_dates = $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
-// catch block to handle error
 catch (PDOException $e)
 {
 	// print the error on the webpage

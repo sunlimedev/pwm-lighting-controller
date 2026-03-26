@@ -163,6 +163,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 		}
 	}
 
+	// test button logic
+	if (isset($_POST['test_scene']))
+	{
+		try
+		{
+			$db->beginTransaction();
+			$db->query("UPDATE testmode SET flag = 0");
+			echo json_encode(["status" => "ok"]);
+			$db->commit();
+			
+			sleep(1);
+			
+			$db->beginTransaction();
+			$stmt = $db->prepare("
+				UPDATE testmode
+				SET flag = 1,
+					behavior = :behavior,
+					brightness = :brightness,
+					speed = :speed,
+					color0 = :color0,
+					color1 = :color1,
+					color2 = :color2,
+					color3 = :color3,
+					color4 = :color4,
+					color5 = :color5,
+					color6 = :color6,
+					color7 = :color7,
+					color8 = :color8,
+					color9 = :color9
+			");
+
+			$stmt->execute([
+				':behavior' => $behavior,
+				':brightness' => $brightness,
+				':speed' => $speed,
+				':color0' => $colors[0],
+				':color1' => $colors[1],
+				':color2' => $colors[2],
+				':color3' => $colors[3],
+				':color4' => $colors[4],
+				':color5' => $colors[5],
+				':color6' => $colors[6],
+				':color7' => $colors[7],
+				':color8' => $colors[8],
+				':color9' => $colors[9]
+			]);
+			$db->commit();
+
+			exit;
+		}
+		catch (PDOException $e)
+		{
+			echo json_encode(["status" => "error"]);
+			exit;
+		}
+	}
+
 	// update table if id is valid
     if ($scene_id !== false)
     {
@@ -170,6 +227,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
         {
             $db = new PDO('sqlite:/home/user/project/database/lighting.db');
             $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+			$db->beginTransaction();
 
             $stmt = $db->prepare("
                 INSERT INTO scenes (
@@ -223,6 +282,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
                 ':color8' => $colors[8],
                 ':color9' => $colors[9]
             ]);
+            
+            $db->exec("UPDATE testmode SET flag = 0");
+            $db->commit();
 
             header("Location: /scenes.php");
             exit;
@@ -392,7 +454,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 					
 					<div id="hiddenInputs"></div>
 
-					<!-- save, delete, and cancel buttons -->
+					<!-- save, test, and cancel buttons -->
 					<div class="flex justify-between items-center mt-4">
 						<a href="/scenes.php" 
 							class="px-4 py-3 bg-yellow-400 2-20 rounded-xl
@@ -400,6 +462,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 								transition">
 								Cancel
 						</a>
+						
+						<button type="button" id="testBtn"
+							class="px-4 py-3 bg-blue-400 w-20 rounded-xl hover:bg-blue-500 transition">
+							Test
+						</button>
 						
 						<input class="px-4 py-3 bg-green-400 w-20 rounded-xl
 								hover:bg-green-500 active:scale-95
@@ -434,6 +501,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 
 	const selectedBox = document.getElementById("selectedBox");
 	const hiddenInputs = document.getElementById("hiddenInputs");
+
+	document.getElementById("testBtn").addEventListener("click", async () => {
+    const form = document.querySelector("form");
+    const formData = new FormData(form);
+
+    // tell PHP this is a test request
+    formData.append("test_scene", "1");
+
+    try {
+        const response = await fetch("", {
+            method: "POST",
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.status === "ok") {
+            alert("Your scene settings will play for 30 seconds.");
+        } else {
+            alert("Test mode was unable to start. Please refresh the page and try again.");
+        }
+    } catch (err) {
+        console.error("Request error:", err);
+    }
+	});
 
 	function renderSelected()
 	{

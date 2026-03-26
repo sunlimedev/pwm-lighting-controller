@@ -188,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 					</div>
 					
 					<div class="flex justify-between items-center mt-4">
-						<a href="/connections.php" 
+						<a href="/settings.php" 
 							class="px-4 py-3 bg-yellow-400 w-20 rounded-xl
 							hover:bg-yellow-500 active:scale-95
 							transition flex items-center justify-center">

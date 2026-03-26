@@ -1,21 +1,41 @@
 <?php
-	// ensure we can connect to the database
-    try
-    {
-        $db = new PDO('sqlite:/home/user/project/database/lighting.db');
-        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+// ensure we can connect to the database
+try
+{
+    $db = new PDO('sqlite:/home/user/project/database/lighting.db');
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         
-        // get current database date and time
-		$stmt = $db->prepare("SELECT * FROM clock");
-		$stmt->execute();
-		// store info in timestamp
-		$timestamp = $stmt->fetch(PDO::FETCH_ASSOC);
-	}
-	catch (PDOException $e)
-    {
-        echo "Database error: " . $e->getMessage();
-        exit;
-    }
+    // get current database date and time
+    $stmt = $db->prepare("SELECT * FROM clock");
+    $stmt->execute();
+    // store info in timestamp
+    $timestamp = $stmt->fetch(PDO::FETCH_ASSOC);
+}
+catch (PDOException $e)
+{
+    echo "Database error: " . $e->getMessage();
+    exit;
+}
+
+if($timestamp['hour'] == 0)
+{
+	$timestamp['hour'] += 12;
+	$timestamp_ampm = "AM";
+}
+elseif($timestamp['hour'] == 12)
+{
+	$timestamp_ampm = "PM";
+}
+elseif($timestamp['hour'] < 12)
+{
+	$timestamp_ampm = "AM";
+}
+else //($timestamp['hour'] > 12)
+{
+	$timestamp['hour'] -= 12;
+	$timestamp_ampm = "PM";
+}
+
 
 // data handling for form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
@@ -218,14 +238,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 								<?php endfor; ?>
 							</select>
 							<select name="ampm" class="bg-white border border-gray-200 rounded-xl px-4 py-3 w-full">
-								<option value="AM">AM</option>
-								<option value="PM">PM</option>
+								<option value="AM" <?= ($timestamp_ampm == "AM") ? 'selected' : ''  ?>>AM</option>
+								<option value="PM" <?= ($timestamp_ampm == "PM") ? 'selected' : ''  ?>>PM</option>
 							</select>
 						</span>
 					</div>
 					
 					<div class="flex justify-between items-center mt-4">
-							<a href="/connections.php" 
+							<a href="/settings.php" 
 								class="px-4 py-3 bg-yellow-400 w-20 rounded-xl
 								hover:bg-yellow-500 active:scale-95
 								transition flex items-center justify-center">

@@ -108,7 +108,7 @@ def input_bus_good(pwm):
         pwm.channels[0].duty_cycle = 0x0000
         pwm.channels[1].duty_cycle = 0x0000
         pwm.channels[2].duty_cycle = 0x0000
-        # hold off for 0.25 second
+        # hold off for 0.5 second
         time.sleep(0.25)
 
     return
@@ -117,7 +117,7 @@ def input_bus_good(pwm):
 # ---------------------- data functions ------------------------
 
 def read_scene_info(cursor, scene_id):
-    # read event scene info from lighting.db
+    # read scene info from lighting.db
     cursor.execute(
         "SELECT behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 FROM scenes WHERE scene_id = ?",
         (scene_id,))
@@ -125,7 +125,7 @@ def read_scene_info(cursor, scene_id):
     # get full default scene row as tuple (tuples aren't real, they can't hurt you)
     row = cursor.fetchone()
 
-    # store event scene table data in variables
+    # store scene table data in variables
     behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 = row
 
     # turn behavior string into callable lighting function
@@ -139,16 +139,16 @@ def read_scene_info(cursor, scene_id):
         if color_ids[i] is None:
             del color_ids[i]
 
-    # if all colors were null, add white to the list (keep things from breaking)
+    # if all colors were null, add black to the list (keep things from breaking)
     if all(color_id is None for color_id in color_ids):
-        color_ids = [1]
+        color_ids = [64]
 
     color_list = color_ids_to_list(cursor, color_ids)
 
     # derive cycle time from speed
     cycle_time = 6 - speed
 
-    # derive dimmer from brightness (1 = 20%, 5 = 100%)
+    # derive dimmer from brightness (1 = 10%, 10 = 100%)
     dimmer = int(0x3333 * (5 - brightness))
 
     return function, color_list, cycle_time, dimmer
@@ -287,6 +287,58 @@ def check_time():
     date_string = today.isoformat()
 
     return date_string, now.hour, now.minute
+
+
+def check_test_mode_active(cursor):
+    # check flag on testmode table
+    cursor.execute("SELECT flag FROM testmode")
+
+    # pull column from table as tuple
+    flag = cursor.fetchone()
+
+    # return state of flag as boolean
+    if(flag[0]):
+        active = True
+    else:
+        active = False
+
+    return active
+
+
+def read_test_scene_info(cursor):
+    # read scene info from lighting.db
+    cursor.execute("SELECT * FROM testmode")
+
+    # get full default scene row as tuple (tuples aren't real, they can't hurt you)
+    row = cursor.fetchone()
+
+    # store event scene table data in variables
+    _, behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 = row
+
+    # turn behavior string into callable lighting function
+    function = globals().get(behavior)
+
+    # put all color_id keys into a list
+    color_ids = [color0, color1, color2, color3, color4, color5, color6, color7, color8, color9]
+
+    # remove unused colors starting from last
+    for i in range(9, -1, -1):
+        if color_ids[i] is None:
+            del color_ids[i]
+
+    # if all colors were null, add black to the list (keep things from breaking)
+    if all(color_id is None for color_id in color_ids):
+        color_ids = [64]
+
+    color_list = color_ids_to_list(cursor, color_ids)
+
+    # derive cycle time from speed
+    cycle_time = 6 - speed
+
+    # derive dimmer from brightness (1 = 10%, 10 = 100%)
+    dimmer = int(0x3333 * (5 - brightness))
+
+    return function, color_list, cycle_time, dimmer
 
 
 # -------------------- lighting functions ----------------------
@@ -667,12 +719,52 @@ def main():
 
     # light tube control hierarchy
     # -------------------------------
-    # 1 - connections: if a connection receives power, then it will be given control
-    # 2 - time: if no connections are active AND the business is closed, then lighting will be disabled
-    # 3 - event: if no connections are active, the business is open, AND today is an event day, then event lighting will be displayed
-    # 4 - default: if no other level has control, then default lighting will be displayed
+    # 1 - test mode: if test mode is active, then it has control
+    # 2 - connections: if a connection receives power AND test mode is off, then it will be given control
+    # 3 - time: if the business is closed AND no connections are active AND test mode is off, then lighting will be disabled
+    # 4 - event: if today is an event day AND the business is open AND no connections are active AND test mode is off, then event lighting will be displayed
+    # 5 - default: if no other level has control, then default lighting will be displayed
 
     while True:
+        # if test mode is active
+        if(check_test_mode_active(cursor)):
+            # get test scene info
+            test_function, test_color_list, test_cycle_time, test_dimmer = read_test_scene_info(cursor)
+
+            # stop the lighting thread
+            stop_flag.set()
+            lighting_thread.join()
+            stop_flag.clear()
+
+            # and restart the lighting thread with the test scene info
+            lighting_thread = threading.Thread(target=test_function, args=(pwm, test_color_list, test_cycle_time, test_dimmer))
+            lighting_thread.start()
+
+            # run test scene for up to 30 seconds or until flag is reset
+            for i in range(0,60):
+                if(check_test_mode_active(cursor)):
+                    time.sleep(0.5)
+
+                    # reset the flag if 30 seconds have elapsed
+                    if(i == 59):
+                        cursor.execute("UPDATE testmode SET flag = 0")
+                        conn.commit()
+                        time.sleep(0.1)
+                else:
+                    cursor.execute("UPDATE testmode SET flag = 0")
+                    conn.commit()
+                    time.sleep(0.1)
+                    break
+
+            # stop the lighting thread
+            stop_flag.set()
+            lighting_thread.join()
+            stop_flag.clear()
+
+            # and restart lighting thread with default scene info
+            lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
+            lighting_thread.start()
+        
         # check current state of input bus
         states = read_input_bus(inputs)
 
@@ -769,8 +861,8 @@ def main():
                     # if the scene info has not changed from the last scene's info
                     if (temp_function, temp_color_list, temp_cycle_time, temp_dimmer) == (function, color_list,
                                                                                           cycle_time, dimmer):
-                        # wait for 100ms and loop again
-                        time.sleep(0.1)
+                        # wait for 200ms and loop again
+                        time.sleep(0.2)
                         continue
 
                     # if the scene info has changed
@@ -787,8 +879,8 @@ def main():
                         lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
                         lighting_thread.start()
 
-                        # wait for 100ms and loop again
-                        time.sleep(0.1)
+                        # wait for 200ms and loop again
+                        time.sleep(0.2)
                         continue
 
                 # if current day is not event day
@@ -799,8 +891,8 @@ def main():
                     # if the scene info has not changed from the last scene's info
                     if (temp_function, temp_color_list, temp_cycle_time, temp_dimmer) == (function, color_list,
                                                                                           cycle_time, dimmer):
-                        # wait for 100ms and loop again
-                        time.sleep(0.1)
+                        # wait for 200ms and loop again
+                        time.sleep(0.2)
                         continue
 
                     # if the scene info has changed
@@ -817,8 +909,8 @@ def main():
                         lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
                         lighting_thread.start()
 
-                        # wait for 100ms and loop again
-                        time.sleep(0.1)
+                        # wait for 200ms and loop again
+                        time.sleep(0.2)
                         continue
 
             # if the current time is not within business hours
@@ -841,20 +933,16 @@ def main():
                                                        args=(pwm, color_list, cycle_time, dimmer))
                     lighting_thread.start()
 
-                    # wait for 100ms and loop again
-                    time.sleep(0.1)
+                    # wait for 200ms and loop again
+                    time.sleep(0.2)
                     continue
 
                 # if off lighting has been running for at least one loop
                 else:
-                    # wait for 100ms and loop again
-                    time.sleep(0.1)
+                    # wait for 200ms and loop again
+                    time.sleep(0.2)
                     continue
 
 
 if __name__ == "__main__":
     main()
-
-
-
-
