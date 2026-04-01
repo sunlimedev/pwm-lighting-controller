@@ -341,6 +341,19 @@ def read_test_scene_info(cursor):
     return function, color_list, cycle_time, dimmer
 
 
+def read_default_scene_id(cursor):
+    # read scene info from lighting.db
+    cursor.execute("SELECT scene_id FROM scenes WHERE is_default = 1")
+
+    # get row from table
+    row = cursor.fetchone()
+
+    # get scene_id
+    scene_id = row[0]
+
+    return scene_id
+
+
 # -------------------- lighting functions ----------------------
 
 def sequence_solid(pwm, color_list, cycle_time, dimmer):
@@ -714,6 +727,9 @@ def main():
 
     # create status variable to see if a connection was just running
     connection_was_running = False
+    
+    # set starting value for default scene_id
+    default_id = 0
 
     # ----------------- lighting thread loop -------------------
 
@@ -885,12 +901,14 @@ def main():
 
                 # if current day is not event day
                 else:
+                    # get default scene_id
+                    default_id = read_default_scene_id(cursor)
+
                     # check the default scene info
-                    temp_function, temp_color_list, temp_cycle_time, temp_dimmer = read_scene_info(cursor, scene_id=1)
+                    temp_function, temp_color_list, temp_cycle_time, temp_dimmer = read_scene_info(cursor, scene_id=default_id)
 
                     # if the scene info has not changed from the last scene's info
-                    if (temp_function, temp_color_list, temp_cycle_time, temp_dimmer) == (function, color_list,
-                                                                                          cycle_time, dimmer):
+                    if (temp_function, temp_color_list, temp_cycle_time, temp_dimmer) == (function, color_list, cycle_time, dimmer) and default_id == read_default_scene_id(cursor):
                         # wait for 200ms and loop again
                         time.sleep(0.2)
                         continue

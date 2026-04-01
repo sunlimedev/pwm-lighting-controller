@@ -273,7 +273,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 							<button	type="submit"
 									name="delete_scene"
 									value="1"
-									onclick="return confirm("Delete this scene?");"
+									onclick="return confirm('Are you sure you want to delete this event?');"
 									class="px-4 py-3 bg-red-400 w-20 rounded-xl hover:bg-red-500 transition">
 								Delete
 							</button>
@@ -298,8 +298,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
     const infoBox = document.getElementById('info-box');
 
     toggleBtn.addEventListener('click', (e) => {
-        e.preventDefault(); // prevent default anchor navigation
+        e.preventDefault();
+        e.stopPropagation(); // prevent this click from reaching document
         infoBox.classList.toggle('hidden');
+    });
+
+    // close when clicking anywhere else
+    document.addEventListener('click', (e) => {
+        if (!infoBox.contains(e.target) && !toggleBtn.contains(e.target)) {
+            infoBox.classList.add('hidden');
+        }
     });
 </script>
 

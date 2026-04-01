@@ -4,7 +4,7 @@ $db = new PDO('sqlite:/home/user/project/database/lighting.db');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 // 1. Prepare the statement
-$stmt = $db->prepare("SELECT year FROM clock");
+$stmt = $db->prepare("SELECT scene_id FROM scenes WHERE is_default = 1");
 
 // 2. RUN the statement
 $stmt->execute();

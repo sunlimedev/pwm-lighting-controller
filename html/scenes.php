@@ -2,6 +2,49 @@
 require_once("/var/www/html/includes/user-check.php");
 require_once("/var/www/html/includes/session-check.php");
 
+
+// data handling for form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST')
+{
+	// create database object using sqlite driver and file path
+    $db = new PDO('sqlite:/home/user/project/database/lighting.db');
+    // throw error on database failure
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	
+	// swap default scene logic
+	if (isset($_POST['new_default_scene']))
+	{
+		$new_default_scene = filter_input(INPUT_POST, 'new_default_scene', FILTER_VALIDATE_INT);
+		
+		try
+		{
+			$db->beginTransaction();
+
+			$db->exec("UPDATE scenes SET is_default = 0");
+			
+			// set new default
+			$stmt = $db->prepare("
+				UPDATE scenes
+				SET is_default = 1
+				WHERE scene_id = :id
+			");
+			$stmt->execute([':id' => $new_default_scene]);
+
+			$db->commit();
+
+			header("Location: /scenes.php");
+			exit;
+		}
+		catch (PDOException $e)
+		{
+			$db->rollBack();
+			echo "Database error: " . $e->getMessage();
+			exit;
+		}
+	}
+}
+
+
 // php try block so a database error does not crash the page
 try
 {
@@ -42,7 +85,6 @@ $behavior_names = [
 	"crossfade"        => "Crossfade",
 	"crossfade_hold"   => "Crossfade - Hold"
 	];
-
 ?>
 
 <!DOCTYPE html>
@@ -111,9 +153,9 @@ $behavior_names = [
 					<p class="text-gray-700">
 						Scenes include a lighting behavior, some colors, a brightness setting, and a speed setting.
 						<br><br>
-						The Default scene will play during the lighting hours you schedule. It can modified but not removed.
+						The highlighted scene in your list is the Default scene. It will play during the lighting hours you schedule.
 						<br><br>
-						Create or modify other scenes to play when a connection is active or for a special event.
+						Create or modify scenes to play when a connection is active or for a special event.
 					</p>
 				</div>
 			</div>
@@ -121,33 +163,34 @@ $behavior_names = [
 	</div>
 
     <div class="max-w-md mx-auto p-1">
-	
+	<form method="POST">
+
 		<!-- big container for all of the scenes-->
 		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200">
-			<?php $count = 0; ?>
+
 			<?php foreach ($rows1 as $row): ?>
 			
-			<div class="p-4 <?= ($count == 0) ? 'bg-blue-100' : '' ?>">
+			<div class="p-4 <?= ($row['is_default'] == 1) ? 'bg-blue-100' : '' ?>">
 				<div class="flex justify-between items-center">
-					<span class="text-left truncate <?= ($count == 0) ? 'text-2xl font-bold' : 'font-medium' ?>">
+					<span class="text-left truncate <?= ($row['is_default'] == 1) ? 'font-bold text-2xl' : 'font-medium' ?>">
 						<?php echo $row['name']; ?>
 					</span>
 				</div>
 				
 				<div>
-					<span class="<?= ($count == 0) ? 'font-medium' : 'text-gray-700' ?>">
+					<span class="text-gray-700">
 						<?php echo "Behavior: " . $behavior_names[$row['behavior']]; ?>
 					</span>
 				</div>
 				
 				<div>
-					<span class="<?= ($count == 0) ? 'font-medium' : 'text-gray-700' ?>">
+					<span class="text-gray-700">
 						<?php echo "Brightness: " . $row['brightness']; ?>
 					</span>
 				</div>
 				
 				<div class = "mb-1">
-					<span class="<?= ($count == 0) ? 'font-medium' : 'text-gray-700' ?>">
+					<span class="text-gray-700">
 						<?php echo "Speed: " . $row['speed']; ?>
 					</span>
 				</div>
@@ -171,21 +214,29 @@ $behavior_names = [
 				</div>
 				
 				<!-- edit button for each scene -->
-				<div class="relative">
+				<div class="relative flex justify-between items-center gap-3">
+						<?= ($row['is_default'] == 0) ? '<button
+							type="submit"
+							name="new_default_scene"
+							value="' . $row['scene_id'] . '"
+							class="px-4 py-3 bg-green-400 w-full rounded-xl hover:bg-green-500 transition">
+							Set Default
+							</button>' : ''
+						?>
 						<?='<a href="edit-scene.php?scene_id=' . $row['scene_id'] . '" id="toggle-info"
-									class="px-4 py-3 bg-yellow-400 rounded-xl
+									class="px-4 py-3 bg-yellow-400 w-full rounded-xl
 									hover:bg-yellow-500 active:scale-95
 									transition flex items-center justify-center">
 									<img src="/assets/pencil.svg" alt="Edit" class="w-6 h-6">
-								</a>';
+								</a>'
 						?>
 				</div>
 			</div>
 			<?php
-				$count++;
 				endforeach; 
 			?>
 		</div>
+	</form>
 	</div>
 	
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
@@ -197,8 +248,16 @@ $behavior_names = [
     const infoBox = document.getElementById('info-box');
 
     toggleBtn.addEventListener('click', (e) => {
-        e.preventDefault(); // prevent default anchor navigation
+        e.preventDefault();
+        e.stopPropagation(); // prevent this click from reaching document
         infoBox.classList.toggle('hidden');
+    });
+
+    // close when clicking anywhere else
+    document.addEventListener('click', (e) => {
+        if (!infoBox.contains(e.target) && !toggleBtn.contains(e.target)) {
+            infoBox.classList.add('hidden');
+        }
     });
 </script>
 

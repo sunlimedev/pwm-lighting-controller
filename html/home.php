@@ -176,8 +176,16 @@ $month_names = [
     const infoBox = document.getElementById('info-box');
 
     toggleBtn.addEventListener('click', (e) => {
-        e.preventDefault(); // prevent default anchor navigation
+        e.preventDefault();
+        e.stopPropagation(); // prevent this click from reaching document
         infoBox.classList.toggle('hidden');
+    });
+
+    // close when clicking anywhere else
+    document.addEventListener('click', (e) => {
+        if (!infoBox.contains(e.target) && !toggleBtn.contains(e.target)) {
+            infoBox.classList.add('hidden');
+        }
     });
 </script>
 

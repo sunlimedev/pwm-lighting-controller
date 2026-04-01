@@ -306,13 +306,25 @@ $month_names = [
     const infoBox2 = document.getElementById('info-box2');
 
     toggleBtn1.addEventListener('click', (e) => {
-        e.preventDefault(); // prevent default anchor navigation
+        e.preventDefault();
+        e.stopPropagation(); // prevent this click from reaching document
         infoBox1.classList.toggle('hidden');
     });
     
     toggleBtn2.addEventListener('click', (e) => {
-        e.preventDefault(); // prevent default anchor navigation
+        e.preventDefault();
+        e.stopPropagation(); // prevent this click from reaching document
         infoBox2.classList.toggle('hidden');
+    });
+    
+    // close when clicking anywhere else
+    document.addEventListener('click', (e) => {
+        if (!infoBox1.contains(e.target) && !toggleBtn1.contains(e.target)) {
+            infoBox1.classList.add('hidden');
+        }
+        if (!infoBox2.contains(e.target) && !toggleBtn2.contains(e.target)) {
+            infoBox2.classList.add('hidden');
+        }
     });
 </script>
 

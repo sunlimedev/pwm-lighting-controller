@@ -198,22 +198,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 		try
 		{
 			$db->beginTransaction();
-
+			
+			$stmt = $db->query("SELECT scene_id FROM scenes WHERE is_default = 1");
+			$default_scene_id = $stmt->fetch(PDO::FETCH_COLUMN);
+			
 			// Step 1: reset connections to default scene
 			$stmt = $db->prepare("
 				UPDATE connections
-				SET scene = 1
+				SET scene = :default
 				WHERE scene = :id
 			");
-			$stmt->execute([':id' => $scene_id]);
+			$stmt->execute([':default' => $default_scene_id, ':id' => $scene_id]);
 
 			// reset events to default scene
 			$stmt = $db->prepare("
 				UPDATE events
-				SET scene = 1
+				SET scene = :default
 				WHERE scene = :id
 			");
-			$stmt->execute([':id' => $scene_id]);
+			$stmt->execute([':default' => $default_scene_id, ':id' => $scene_id]);
 	
 			// Step 2: delete the scene
 			$stmt = $db->prepare("
@@ -454,8 +457,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 					<!-- name field with read only for default scene -->
 					<div class="font-medium">
 						<label for="name">Scene Name</label><br>
-						<input <?= ($scene_id == 1) ? 'readonly' : '' ?>
-							class="w-full <?= ($scene_id == 1) ? 'bg-gray-100' : '' ?> border border-gray-200 rounded-xl px-4 py-3 mb-2"
+						<input
+							class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-2"
 							type="text"
 							id="name"
 							name="name"
@@ -550,13 +553,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 								Cancel
 						</a>
 						
-						<?php if($scene_id != 1)
+						<?php if($rows1['is_default'] != 1)
 						{   // placeholder -- do we need onclick idk
 							echo '<button
 							type="submit"
 							name="delete_scene"
 							value="1"
-							onclick="return confirm("Delete this scene?");"
+							onclick="return confirm(\'Are you sure you want to delete this scene?\');"
 							class="px-4 py-3 bg-red-400 w-20 rounded-xl hover:bg-red-500 transition">
 							Delete
 							</button>';
@@ -588,8 +591,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
     const infoBox = document.getElementById('info-box');
 
     toggleBtn.addEventListener('click', (e) => {
-        e.preventDefault(); // prevent default anchor navigation
+        e.preventDefault();
+        e.stopPropagation(); // prevent this click from reaching document
         infoBox.classList.toggle('hidden');
+    });
+
+    // close when clicking anywhere else
+    document.addEventListener('click', (e) => {
+        if (!infoBox.contains(e.target) && !toggleBtn.contains(e.target)) {
+            infoBox.classList.add('hidden');
+        }
     });
 </script>
 
