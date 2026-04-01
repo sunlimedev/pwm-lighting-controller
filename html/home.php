@@ -1,4 +1,7 @@
 <?php 
+require_once("/var/www/html/includes/user-check.php");
+require_once("/var/www/html/includes/session-check.php");
+
 try
 {
 	// connect to db
@@ -12,6 +15,9 @@ try
     // get all event dates
     $stmt = $db->query("SELECT date FROM events");
     $event_dates = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    $stmt = $db->query("SELECT year FROM clock");
+	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 }
 catch (PDOException $e)
 {
@@ -99,7 +105,7 @@ $month_names = [
             <!-- Floating popup -->
             <div id="info-box" class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
                 <p class="text-gray-800">
-					placeholder
+					Welcome to the Home page. If this is your first time here, or you haven't modified your lighting settings in a while, consider visiting the Setup Guide for more information.
                 </p>
             </div>
 		</div>
@@ -162,7 +168,7 @@ $month_names = [
     </div>
     
 	<div class="text-center text-gray-400 text-sm mt-6 mb-8">
-		v1.0 - © 2026 Signal-Tech 
+		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
 <script>

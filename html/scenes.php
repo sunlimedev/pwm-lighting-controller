@@ -1,4 +1,7 @@
 <?php
+require_once("/var/www/html/includes/user-check.php");
+require_once("/var/www/html/includes/session-check.php");
+
 // php try block so a database error does not crash the page
 try
 {
@@ -16,6 +19,9 @@ try
     $stmt = $db->query("SELECT * FROM colors ORDER BY color_id ASC");
     // extract each row as an array of values
     $rows2 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $stmt = $db->query("SELECT year FROM clock");
+	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 }
 // catch block to handle error
 catch (PDOException $e)
@@ -183,7 +189,7 @@ $behavior_names = [
 	</div>
 	
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
-		v1.0 - © 2026 Signal-Tech
+		v1.0 - © <?= $copyright_year ?> Signal-Tech
 	</div>
 
 <script>

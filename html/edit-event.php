@@ -1,4 +1,7 @@
 <?php
+require_once("/var/www/html/includes/user-check.php");
+require_once("/var/www/html/includes/session-check.php");
+
 // check if the key exists in the URL
 if (isset($_GET['event_id']))
 {
@@ -42,6 +45,9 @@ $stmt = $db->prepare("SELECT * FROM events WHERE event_id = :id");
 $stmt->execute(['id' => $event_id]);
 // store info in array
 $event_info = $stmt->fetch(PDO::FETCH_ASSOC);
+
+$stmt = $db->query("SELECT year FROM clock");
+$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 
 // slice string into parts
 $event_year = (int)substr($event_info['date'], 0, 4);
@@ -183,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 				<div id="info-box"
 					class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
 					<p class="text-gray-800">
-						placeholder
+						Modify or delete an event on your schedule that overrides your Default lighting settings.
 					</p>
 				</div>
 			</div>
@@ -284,7 +290,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 	</div>
 
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
-		v1.0 - © 2026 Signal-Tech 
+		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
 <script>

@@ -1,4 +1,7 @@
 <?php
+require_once("/var/www/html/includes/user-check.php");
+require_once("/var/www/html/includes/session-check.php");
+
 // check if the key exists in the URL
 if (isset($_GET['connection_id']))
 {
@@ -66,8 +69,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
     }
 }
 
-
-
 // try database connection
 try
 {
@@ -86,6 +87,9 @@ try
     $stmt = $db->query("SELECT * FROM scenes ORDER BY scene_id ASC");
     // store all scene info in rows2
     $rows2 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $stmt = $db->query("SELECT year FROM clock");
+	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 }
 // catch block to handle error
 catch (PDOException $e)
@@ -208,7 +212,7 @@ catch (PDOException $e)
 	</div>
 
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
-		v1.0 - © 2026 Signal-Tech 
+		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
 <script>

@@ -1,4 +1,7 @@
 <?php
+require_once("/var/www/html/includes/user-check.php");
+require_once("/var/www/html/includes/session-check.php");
+
 // ensure we can connect to the database
 try
 {
@@ -10,6 +13,9 @@ try
     $stmt->execute();
     // store info in timestamp
     $timestamp = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    $stmt = $db->query("SELECT year FROM clock");
+	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 }
 catch (PDOException $e)
 {
@@ -167,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 				<div id="info-box"
 					class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
 					<p class="text-gray-800">
-						placeholder
+						Change the date and/or time of your controller.
 					</p>
 				</div>
 			</div>
@@ -264,7 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 	</div>
 
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
-		v1.0 - © 2026 Signal-Tech 
+		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
 <script>

@@ -4,11 +4,11 @@ $db = new PDO('sqlite:/home/user/project/database/lighting.db');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 // 1. Prepare the statement
-$stmt = $db->prepare("SELECT * FROM time");
+$stmt = $db->prepare("SELECT year FROM clock");
 
 // 2. RUN the statement
 $stmt->execute();
-$nested_array = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$nested_array = $stmt->fetch(PDO::FETCH_COLUMN);
 
 echo "<h1>Times</h1>";
 

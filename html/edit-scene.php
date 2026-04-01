@@ -1,4 +1,7 @@
 <?php
+require_once("/var/www/html/includes/user-check.php");
+require_once("/var/www/html/includes/session-check.php");
+
 // check if the key exists in the URL
 if (isset($_GET['scene_id']))
 {
@@ -158,14 +161,9 @@ $color_files = [
 	64 => "off"
 ];
 
-// try database connection
 try
 {
-	// connect to lighting.db
-    $db = new PDO('sqlite:/home/user/project/database/lighting.db');
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-    // get specific scene's info
+	// get specific scene's info
     $stmt = $db->prepare("SELECT * FROM scenes WHERE scene_id = :id");
     // bind value
     $stmt->execute(['id' => $scene_id]);
@@ -176,6 +174,9 @@ try
     $stmt = $db->query("SELECT * FROM colors ORDER BY color_id ASC");
     // store all color's info in rows2
     $rows2 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $stmt = $db->query("SELECT year FROM clock");
+	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 }
 // catch block to handle error
 catch (PDOException $e)
@@ -578,7 +579,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 	
 	<!-- copyright footer -->
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
-		v1.0 - © 2026 Signal-Tech 
+		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
 <!-- javascript for tooltip button -->

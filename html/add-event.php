@@ -1,15 +1,21 @@
 <?php
-$db = new PDO('sqlite:/home/user/project/database/lighting.db');
-$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-// get all scene info
-$stmt = $db->query("SELECT * FROM scenes ORDER BY scene_id ASC");
-// store all scene info in result
-$scenes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+require_once("/var/www/html/includes/user-check.php");
+require_once("/var/www/html/includes/session-check.php");
 
 // data handling for form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
 {
+    try
+	{
+		$db = new PDO('sqlite:/home/user/project/database/lighting.db');
+		$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	}
+	catch (PDOException $e)
+	{
+		echo "Database error: " . $e->getMessage();
+		exit;
+	}
+    
     $scene = filter_input(INPUT_POST, 'scene', FILTER_VALIDATE_INT);
     $year = filter_input(INPUT_POST, 'year', FILTER_VALIDATE_INT);
     $month = filter_input(INPUT_POST, 'month', FILTER_VALIDATE_INT);
@@ -30,9 +36,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
     {
         try
         {
-            $db = new PDO('sqlite:/home/user/project/database/lighting.db');
-            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
             $stmt = $db->prepare("
                 INSERT INTO events (
 					scene,
@@ -63,7 +66,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
         }
     }
 }
+
+try
+{
+	$db = new PDO('sqlite:/home/user/project/database/lighting.db');
+	$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+	// get all scene info
+	$stmt = $db->query("SELECT * FROM scenes ORDER BY scene_id ASC");
+	// store all scene info in result
+	$scenes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+	$stmt = $db->query("SELECT year FROM clock");
+	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
+}
+catch (PDOException $e)
+{
+	echo "Database error: " . $e->getMessage();
+	exit;
+}
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -119,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 				<div id="info-box"
 					class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
 					<p class="text-gray-800">
-						placeholder
+						Add an event to your schedule to override your Default lighting settings.
 					</p>
 				</div>
 			</div>
@@ -204,7 +227,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 	</div>
 
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
-		v1.0 - © 2026 Signal-Tech 
+		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
 <script>

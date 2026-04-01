@@ -1,4 +1,7 @@
 <?php
+require_once("/var/www/html/includes/user-check.php");
+require_once("/var/www/html/includes/session-check.php");
+
 // form name to db name
 $behavior_names_to_db = [
 	"Sequence - Solid"   => "sequence_solid",
@@ -127,6 +130,9 @@ try
     
     // no colors preselected for add scene
     $preselected = [];
+    
+    $stmt = $db->query("SELECT year FROM clock");
+	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 }
 // catch block to handle error
 catch (PDOException $e)
@@ -479,7 +485,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 	
 	<!-- copyright footer -->
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
-		v1.0 - © 2026 Signal-Tech 
+		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
 <!-- javascript for tooltip button -->

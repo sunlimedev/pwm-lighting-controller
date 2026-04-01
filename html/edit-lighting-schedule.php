@@ -1,4 +1,7 @@
 <?php
+require_once("/var/www/html/includes/user-check.php");
+require_once("/var/www/html/includes/session-check.php");
+
     $days = [
         0 => "Monday",
         1 => "Tuesday",
@@ -14,6 +17,9 @@ try
 	// connect to lighting.db
     $db = new PDO('sqlite:/home/user/project/database/lighting.db');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+	$stmt = $db->query("SELECT year FROM clock");
+	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 
 	// get all time info
     $stmt = $db->prepare("SELECT * FROM time ORDER BY weekday_id ASC");
@@ -182,7 +188,7 @@ for ($id = 0; $id <= 6; $id++) {
 				<div id="info-box"
 					class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
 					<p class="text-gray-700">
-						placeholder
+						Modify the hours your lighting runs to fit your needs. You can select "All day" or "None" to fully enable or disable your lighting.
 					</p>
 				</div>
 			</div>
@@ -316,7 +322,7 @@ for ($id = 0; $id <= 6; $id++) {
 
 	</div>
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
-		v1.0 - © 2026 Signal-Tech 
+		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
 <script>

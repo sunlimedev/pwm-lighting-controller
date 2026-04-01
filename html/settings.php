@@ -1,4 +1,7 @@
-<?php 
+<?php
+require_once("/var/www/html/includes/user-check.php");
+require_once("/var/www/html/includes/session-check.php");
+
 try
 {
 	// connect to db
@@ -8,10 +11,9 @@ try
 	// get all values from row of clock table
     $stmt = $db->query("SELECT * FROM clock");
     $clock = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    // get all event dates
-    $stmt = $db->query("SELECT date FROM events");
-    $event_dates = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    $stmt = $db->query("SELECT year FROM clock");
+	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 }
 catch (PDOException $e)
 {
@@ -20,7 +22,6 @@ catch (PDOException $e)
     exit;
 }
 
-$num_events = count($event_dates);
 $date_string = sprintf("%04d-%02d-%02d", $clock['year'], $clock['month'], $clock['day']);
 $minute = sprintf("%02d", $clock['minute']);
 
@@ -115,7 +116,7 @@ $month_names = [
             <!-- Floating popup -->
             <div id="info-box" class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
                 <p class="text-gray-800">
-					placeholder
+					Change the date and/or time of your controller or reset certain information to the factory settings.
                 </p>
             </div>
 		</div>
@@ -151,7 +152,7 @@ $month_names = [
     </div>
     
 	<div class="text-center text-gray-400 text-sm mt-6 mb-8">
-		v1.0 - © 2026 Signal-Tech 
+		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
 <script>
