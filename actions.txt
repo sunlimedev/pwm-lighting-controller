@@ -29,3 +29,5 @@ nmcli device wifi hotspot ssid st-lighting password SignalTech26
 nmcli connection show
 nmcli connection modify Hotspot 802-11-wireless.hidden yes
 nmcli connection up Hotspot
+
+ip: 10.42.0.1
