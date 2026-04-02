@@ -18,3 +18,14 @@ chmod +x /home/user/project/backend/set_rtc.py   <----- dont need this now
 
 
 create and enable systemd for controller.py and sync_clocks.py and set_rtc.py
+
+
+
+
+
+
+hotspot configuration:
+nmcli device wifi hotspot ssid st-lighting password SignalTech26
+nmcli connection show
+nmcli connection modify Hotspot 802-11-wireless.hidden yes
+nmcli connection up Hotspot
