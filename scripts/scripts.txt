@@ -1,1 +1,1 @@
-
+This directory contains extra project scripts. This includes: .py
