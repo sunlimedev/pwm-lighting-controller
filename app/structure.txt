@@ -1,0 +1,19 @@
+Logical structure
+-----------------
+register.php
+index.php
+└── forgot-user-pass.php
+└── home.php
+     ├── scenes.php
+     |    ├── add-scene.php
+     |    └── edit-scene.php
+     ├── connections.php
+     |    └── edit-connection.php
+     ├── schedule.php
+     |    ├── add-event.php
+     |    ├── edit-event.php
+     |    └── edit-lighting-schedule.php
+     ├── setup-guide.php
+     └── settings.php
+          └── edit-date-time.php
+          └── reset.php
