@@ -3,6 +3,16 @@ require_once("/var/www/html/includes/user-check.php");
 require_once("/var/www/html/includes/session-check.php");
 
 // check if the key exists in the URL
+if (isset($_GET['notify']))
+{
+    // ensure notify is a valid integer
+    $notify = $_GET['notify'];
+
+	// redirect if there is an issue
+	$message = "Event already exists for " . $notify . ". Select a different day or edit/remove the existing event.";
+}
+
+// check if the key exists in the URL
 if (isset($_GET['event_id']))
 {
     // ensure event_id is a valid integer
@@ -100,6 +110,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
     
     // make date ISO8601 string YYYY-MM-DD
     $date_string = sprintf("%04d-%02d-%02d", $year, $month, $day);
+    
+    // get all event dates
+	$stmt = $db->query("SELECT date FROM events");
+	$event_dates = $stmt->fetchAll(PDO::FETCH_COLUMN);
+	
+	// do not allow event to be added if one exists on that day already
+	if(in_array($date_string, $event_dates))
+	{
+		$date_string = sprintf("%02d-%02d-%04d", $month, $day, $year);
+		header("Location: /edit-event.php?event_id=" . $event_id . "&notify=" . $date_string);
+        exit;
+	}
 
     if ($event_id !== false && $scene !== false)
     {
@@ -197,6 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
     </div>
 
 	<div class="max-w-md mx-auto p-1">
+		<?= $message != 0 ? '<div class="text-red-700 text-left text-xl font-bold p-1 mb-2"> ' . $message . ' </div>' : '' ?>
 		<!-- big container for all of the scenes-->
 		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200">
 			<div class="p-4">
@@ -263,7 +286,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 					</div>
 					
 					<div class="flex justify-between items-center mt-4">
-							<a href="/connections.php" 
+							<a href="/events.php" 
 								class="px-4 py-3 bg-yellow-400 w-20 rounded-xl
 								hover:bg-yellow-500 active:scale-95
 								transition flex items-center justify-center">

@@ -261,6 +261,20 @@ $behavior_names = [
     });
 </script>
 
+<script>
+window.addEventListener('scroll', () => {
+  sessionStorage.setItem('scrollPosition', window.scrollY);
+});
+
+window.addEventListener('load', () => {
+  const scrollPos = sessionStorage.getItem('scrollPosition');
+  if (scrollPos) {
+    window.scrollTo(0, parseInt(scrollPos));
+  }
+});
+
+</script>
+
 </body>
 </html>
 
