@@ -2,13 +2,10 @@
 require_once("/var/www/html/includes/user-check.php");
 require_once("/var/www/html/includes/session-check.php");
 
-
-// data handling for form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
 {
-	// create database object using sqlite driver and file path
+	// database connect
     $db = new PDO('sqlite:/home/user/project/database/lighting.db');
-    // throw error on database failure
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 	
 	// swap default scene logic
@@ -21,6 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 			$db->beginTransaction();
 
 			$db->exec("UPDATE scenes SET is_default = 0");
+			
+			// kill test mode
+			$db->exec("UPDATE testmode SET flag = 0");
 			
 			// set new default
 			$stmt = $db->prepare("
@@ -44,36 +44,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 	}
 }
 
-
-// php try block so a database error does not crash the page
+// database connect
 try
 {
-	// create database object using sqlite driver and file path
     $db = new PDO('sqlite:/home/user/project/database/lighting.db');
-    // throw error on database failure
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-	// statement object is a container holding result of query
+	// get all scenes
     $stmt = $db->query("SELECT * FROM scenes ORDER BY scene_id ASC");
-    // extract each row as an array of values
-    $rows1 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $scenes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // statement object is a container holding result of query
+	// get all colors
     $stmt = $db->query("SELECT * FROM colors ORDER BY color_id ASC");
-    // extract each row as an array of values
-    $rows2 = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+    $colors = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+	// get current year for copyright footer
     $stmt = $db->query("SELECT year FROM clock");
 	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 }
-// catch block to handle error
 catch (PDOException $e)
 {
-	// print the error on the webpage
     echo "Database error: " . $e->getMessage();
     exit;
 }
 
+// db string to formatted string mapping
 $behavior_names = [
 	"sequence_solid"   => "Sequence - Solid",
 	"sequence_fade"    => "Sequence - Fade",
@@ -89,6 +84,7 @@ $behavior_names = [
 
 <!DOCTYPE html>
 <html lang="en">
+	
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -97,7 +93,7 @@ $behavior_names = [
 </head>
 
 <body class="bg-gray-100 min-h-screen">
-	
+	<!-- logo and navigation buttons -->
 	<div class="text-center py-6 flex justify-between items-center max-w-md mx-auto pl-7 pr-7">
 		<span>
 			<a href="/home.php" class="inline-block">
@@ -119,13 +115,13 @@ $behavior_names = [
 			</a>
 		</span>
 	</div>
-
+	
+	<!-- page header and tootip/action buttons -->
 	<div class="max-w-md mx-auto p-1">
 		<div class="flex justify-between items-center mb-2">
 			<h1 class="text-3xl font-semibold p-1">
 				Scenes
 			</h1>
-			
 			<a href="/add-scene.php" 
 			class="px-4 py-3 bg-blue-400 w-20 rounded-xl
 					hover:bg-blue-500 active:scale-95
@@ -135,8 +131,6 @@ $behavior_names = [
 					alt="Add scene" 
 					class="w-12 h-6">
 			</a>
-			
-			<!-- Button container -->
 			<div class="relative pr-1">
 				<a href="#" id="toggle-info"
 					class="px-4 py-3 bg-purple-400 w-20 rounded-xl
@@ -146,8 +140,6 @@ $behavior_names = [
                      alt="Help"
                      class="w-12 h-6">
 				</a>
-
-            <!-- Floating popup -->
 				<div id="info-box"
 					class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
 					<p class="text-gray-700">
@@ -162,48 +154,41 @@ $behavior_names = [
 		</div>
 	</div>
 
+	<!-- form container for all scenes and buttons -->
     <div class="max-w-md mx-auto p-1">
 	<form method="POST">
-
-		<!-- big container for all of the scenes-->
 		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200">
-
-			<?php foreach ($rows1 as $row): ?>
-			
-			<div class="p-4 <?= ($row['is_default'] == 1) ? 'bg-blue-100' : '' ?>">
+			<?php foreach ($scenes as $scene): ?>
+			<div class="p-4 <?= ($scene['is_default'] == 1) ? 'bg-blue-100' : '' ?>">
 				<div class="flex justify-between items-center">
-					<span class="text-left truncate <?= ($row['is_default'] == 1) ? 'font-bold text-2xl' : 'font-medium' ?>">
-						<?php echo $row['name']; ?>
+					<span class="text-left truncate <?= ($scene['is_default'] == 1) ? 'font-bold text-2xl' : 'font-medium' ?>">
+						<?php echo $scene['name']; ?>
 					</span>
 				</div>
-				
 				<div>
 					<span class="text-gray-700">
-						<?php echo "Behavior: " . $behavior_names[$row['behavior']]; ?>
+						<?php echo "Behavior: " . $behavior_names[$scene['behavior']]; ?>
 					</span>
 				</div>
-				
 				<div>
 					<span class="text-gray-700">
-						<?php echo "Brightness: " . $row['brightness']; ?>
+						<?php echo "Brightness: " . $scene['brightness']; ?>
 					</span>
 				</div>
-				
 				<div class = "mb-1">
 					<span class="text-gray-700">
-						<?php echo "Speed: " . $row['speed']; ?>
+						<?php echo "Speed: " . $scene['speed']; ?>
 					</span>
 				</div>
-				
 				<!-- show color images -->
 				<div class= "mb-2">
 					<span class="flex flex-wrap items-center gap-1">
 						<?php for ($i = 0; $i < 10; $i++): ?>
 							<?php
 								$key = "color" . $i;
-								if (!empty($row[$key])):
-									$color_id = $row[$key] - 1;
-									$color_name = $rows2[$color_id]['name'];
+								if (!empty($scene[$key])):
+									$color_id = $scene[$key] - 1;
+									$color_name = $colors[$color_id]['name'];
 							?>
 							<img src="/assets/colors/<?= $color_name; ?>.svg"
 								 alt="<?= $color_name; ?>"
@@ -212,18 +197,17 @@ $behavior_names = [
 						<?php endfor; ?>
 					</span>
 				</div>
-				
 				<!-- edit button for each scene -->
 				<div class="relative flex justify-between items-center gap-3">
-						<?= ($row['is_default'] == 0) ? '<button
+						<?= ($scene['is_default'] == 0) ? '<button
 							type="submit"
 							name="new_default_scene"
-							value="' . $row['scene_id'] . '"
+							value="' . $scene['scene_id'] . '"
 							class="px-4 py-3 bg-green-400 w-full rounded-xl hover:bg-green-500 transition">
 							Set Default
 							</button>' : ''
 						?>
-						<?='<a href="edit-scene.php?scene_id=' . $row['scene_id'] . '" id="toggle-info"
+						<?='<a href="edit-scene.php?scene_id=' . $scene['scene_id'] . '" id="toggle-info"
 									class="px-4 py-3 bg-yellow-400 w-full rounded-xl
 									hover:bg-yellow-500 active:scale-95
 									transition flex items-center justify-center">
@@ -232,28 +216,29 @@ $behavior_names = [
 						?>
 				</div>
 			</div>
-			<?php
-				endforeach; 
-			?>
+			<?php endforeach; ?>
 		</div>
 	</form>
 	</div>
-	
+
+	<!-- copyright footer -->
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
 		v1.0 - © <?= $copyright_year ?> Signal-Tech
 	</div>
 
 <script>
+	// tooltip box
     const toggleBtn = document.getElementById('toggle-info');
     const infoBox = document.getElementById('info-box');
-
+	
+	// stop click through tooltip box
     toggleBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // prevent this click from reaching document
+        e.stopPropagation();
         infoBox.classList.toggle('hidden');
     });
 
-    // close when clicking anywhere else
+    // close tooltip when clicking elsewhere
     document.addEventListener('click', (e) => {
         if (!infoBox.contains(e.target) && !toggleBtn.contains(e.target)) {
             infoBox.classList.add('hidden');
@@ -262,19 +247,20 @@ $behavior_names = [
 </script>
 
 <script>
-window.addEventListener('scroll', () => {
-  sessionStorage.setItem('scrollPosition', window.scrollY);
-});
+	// return to scroll position on page refresh
+	window.addEventListener('scroll', () => {
+		sessionStorage.setItem('scrollPosition', window.scrollY);
+	});
 
-window.addEventListener('load', () => {
-  const scrollPos = sessionStorage.getItem('scrollPosition');
-  if (scrollPos) {
-    window.scrollTo(0, parseInt(scrollPos));
-  }
-});
-
+	window.addEventListener('load', () => {
+		const scrollPos = sessionStorage.getItem('scrollPosition');
+		if (scrollPos) {
+			window.scrollTo(0, parseInt(scrollPos));
+		}
+	});
 </script>
 
 </body>
+
 </html>
 

@@ -1,7 +1,7 @@
 <?php
 require_once("/var/www/html/includes/user-check.php");
 
-// redirect logged in user away from login (idk if we need this check this whole file)
+// redirect logged in user away from login
 session_start();
 if (isset($_SESSION['user_id']))
 {
@@ -9,7 +9,6 @@ if (isset($_SESSION['user_id']))
     exit();
 }
 
-// check if the key exists in the URL
 if (isset($_GET['notify']))
 {
     // ensure notify is a valid integer
@@ -18,9 +17,9 @@ if (isset($_GET['notify']))
 	// redirect if there is an issue
     if ($notify !== false)
     {
-		// account was just created
         if ($notify == 0)
         {
+			// account was just created
 			$message = "Account successfully created. Please log in.";
 		}
 		elseif ($notify == 1)
@@ -36,6 +35,7 @@ if (isset($_GET['notify']))
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
 {
+	// database connect
 	try
 	{
 		$db = new PDO('sqlite:/home/user/project/database/lighting.db');
@@ -47,7 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 		$stmt = $db->prepare("SELECT * FROM users WHERE username = ?");
 		$stmt->execute([$username]);
 		$user = $stmt->fetch();
-
+		
+		// check if username and password are correct
 		if ($user && password_verify($password, $user['password']))
 		{
 			$_SESSION['user_id'] = $user['id'];
@@ -62,27 +63,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 	}
 	catch (PDOException $e)
 	{
-		// print the error on the webpage
 		echo "Database error: " . $e->getMessage();
 		exit;
 	}
 }
 
+// database connect
 try
 {
 	$db = new PDO('sqlite:/home/user/project/database/lighting.db');
 	$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+	// get current year for copyright footer
 	$stmt = $db->query("SELECT year FROM clock");
 	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 }
 catch (PDOException $e)
 {
-	// print the error on the webpage
 	echo "Database error: " . $e->getMessage();
 	exit;
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -96,19 +96,19 @@ catch (PDOException $e)
 </head>
 
 <body class="bg-gray-100 min-h-screen">
-
+	<!-- logo and navigation buttons -->
 	<div class="py-6 flex justify-between items-center max-w-md mx-auto">
 		<img src="/assets/logo.svg" 
 			alt="Logo"
 			class="mx-auto w-48">
 	</div>
 	
+	<!-- page header and tootip/action buttons -->
 	<div class="max-w-md mx-auto p-1">
 		<div class="flex justify-between items-center mb-2">
 			<h1 class="text-3xl font-semibold p-1">
 				Log In
 			</h1>
-		
 			<div class="relative pr-1">
 				<a href="#" id="toggle-info"
 					class="px-4 py-3 bg-purple-400 w-20 rounded-xl
@@ -118,7 +118,6 @@ catch (PDOException $e)
 						alt="Help"
 						class="w-12 h-6">
 				</a>
-
 				<div id="info-box"
 					class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
 					<p class="text-gray-800">
@@ -130,11 +129,11 @@ catch (PDOException $e)
 			</div>
 		</div>
     </div>
-
+    
+	<!-- form container username and password fields -->
 	<div class="max-w-md mx-auto p-1">
-		
+		<!-- show login error or account created -->
 		<?= $message != 0 ? '<div class="text-red-700 text-left text-xl font-bold p-1 mb-2"> ' . $message . ' </div>' : '' ?>
-		
 		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200">
 			<div class="p-4">
 				<div>
@@ -143,7 +142,6 @@ catch (PDOException $e)
 						<label for="scene">Username</label><br>
 						<input class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="username" name="username" required>
 					</div>
-					
 					<div class="font-medium">
 						<label for="note">Password</label><br>
 						<input class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-2" type="password" id="password" name="password" required>
@@ -154,34 +152,35 @@ catch (PDOException $e)
 								hover:bg-yellow-500 active:scale-95
 								transition flex items-center justify-center">
 								Help
-							</a>
-											
+							</a>			
 							<input class="px-4 py-3 bg-green-400 w-20 rounded-xl
 								hover:bg-green-500 active:scale-95
 								transition flex items-center justify-center" type="submit" value="Log In">
 					</div>
 					</form>
 				</div>
-				
 			</div>
 		</div>
 	</div>
 
+	<!-- copyright footer -->
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
 		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
 <script>
+	// tooltip box
     const toggleBtn = document.getElementById('toggle-info');
     const infoBox = document.getElementById('info-box');
-
+	
+	// stop click through tooltip box
     toggleBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // prevent this click from reaching document
+        e.stopPropagation();
         infoBox.classList.toggle('hidden');
     });
 
-    // close when clicking anywhere else
+    // close tooltip when clicking elsewhere
     document.addEventListener('click', (e) => {
         if (!infoBox.contains(e.target) && !toggleBtn.contains(e.target)) {
             infoBox.classList.add('hidden');
