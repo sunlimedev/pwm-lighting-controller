@@ -297,20 +297,14 @@ def check_time():
     return date_string, now.hour, now.minute
 
 
-def check_test_mode_active(cursor):
+def check_test_flags_active(cursor):
     # check flag on testmode table
-    cursor.execute("SELECT flag FROM testmode")
+    cursor.execute("SELECT flag, reload FROM testmode")
 
     # pull column from table as tuple
     flag = cursor.fetchone()
 
-    # return state of flag as boolean
-    if(flag[0]):
-        active = True
-    else:
-        active = False
-
-    return active
+    return flag
 
 
 def read_test_scene_info(cursor):
@@ -321,7 +315,7 @@ def read_test_scene_info(cursor):
     row = cursor.fetchone()
 
     # store event scene table data in variables
-    _, behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 = row
+    _, _, behavior, brightness, speed, color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 = row
 
     # turn behavior string into callable lighting function
     function = globals().get(behavior)
@@ -729,8 +723,11 @@ def main():
     # illuminate run LED
     run_LED.on()
 
+	# get default scene number
+    default_id = read_default_scene_id(cursor)
+
     # read default scene info from scenes table
-    function, color_list, cycle_time, dimmer = read_scene_info(cursor, scene_id=1)
+    function, color_list, cycle_time, dimmer = read_scene_info(cursor, scene_id=default_id)
 
     # start lighting thread with default scene info
     lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
@@ -756,45 +753,54 @@ def main():
     # 5 - default: if no other level has control, then default lighting will be displayed
 
     while True:
+        # check current test mode flags state
+        flag, reload = check_test_flags_active(cursor)
+        
         # if test mode is active
-        if(check_test_mode_active(cursor)):
-            # get test scene info
-            test_function, test_color_list, test_cycle_time, test_dimmer = read_test_scene_info(cursor)
-
-            # stop the lighting thread
-            stop_flag.set()
-            lighting_thread.join()
-            stop_flag.clear()
-
-            # and restart the lighting thread with the test scene info
-            lighting_thread = threading.Thread(target=test_function, args=(pwm, test_color_list, test_cycle_time, test_dimmer))
-            lighting_thread.start()
-
+        while(flag == 1):
             # run test scene for up to 30 seconds or until flag is reset
             for i in range(0,60):
-                if(check_test_mode_active(cursor)):
-                    time.sleep(0.5)
+                # check current test mode flags state
+                flag, reload = check_test_flags_active(cursor)
+                
+                if flag == 1 and reload == 1:
+                    # get test scene info
+                    test_function, test_color_list, test_cycle_time, test_dimmer = read_test_scene_info(cursor)
 
-                    # reset the flag if 30 seconds have elapsed
-                    if(i == 59):
-                        cursor.execute("UPDATE testmode SET flag = 0")
-                        conn.commit()
-                        time.sleep(0.1)
-                else:
-                    cursor.execute("UPDATE testmode SET flag = 0")
+                    # stop the lighting thread
+                    stop_flag.set()
+                    lighting_thread.join()
+                    stop_flag.clear()
+
+                    # and restart the lighting thread with the test scene info
+                    lighting_thread = threading.Thread(target=test_function, args=(pwm, test_color_list, test_cycle_time, test_dimmer))
+                    lighting_thread.start()
+
+                    # update reload on table and reset 30s timer
+                    cursor.execute("UPDATE testmode SET reload = 0")
                     conn.commit()
                     time.sleep(0.1)
                     break
 
-            # stop the lighting thread
-            stop_flag.set()
-            lighting_thread.join()
-            stop_flag.clear()
+                elif flag == 1:
+                    if i == 59:
+                        # turn off flag to end test mode
+                        cursor.execute("UPDATE testmode SET flag = 0")
+                        conn.commit()
+                        time.sleep(0.1)
+                    else:
+                        time.sleep(0.5)
 
-            # and restart lighting thread with default scene info
-            lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
-            lighting_thread.start()
-        
+            if flag == 0:
+                # stop the lighting thread
+                stop_flag.set()
+                lighting_thread.join()
+                stop_flag.clear()
+
+                # and restart lighting thread with default scene info
+                lighting_thread = threading.Thread(target=function, args=(pwm, color_list, cycle_time, dimmer))
+                lighting_thread.start()
+
         # check current state of input bus
         states = read_input_bus(inputs)
 
