@@ -7,7 +7,7 @@ import threading
 
 def reset_database_and_services(reset_LED):
     # turn on reset_LED to indicate process has started
-    reset_LED.blink(n=12)
+    reset_LED.blink(on_time=0.5, off_time=0.5)
 
     while True:
         # reset all tables in lighting.db
@@ -83,6 +83,12 @@ def reset_database_and_services(reset_LED):
     # restart apache
     os.system("sudo systemctl restart apache2")
     print("Apache restarted.")
+
+    # sleep for 7 seconds to give services time
+    time.sleep(7)
+
+    # turn off reset LED
+    reset_LED.off()
 
 
 def main():

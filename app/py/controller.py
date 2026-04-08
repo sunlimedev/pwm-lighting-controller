@@ -19,7 +19,7 @@ def initialize_pwm():
 
     # create a PCA9685 object and set the frequency for LED control
     pwm = adafruit_pca9685.PCA9685(i2c)
-    pwm.frequency = 1000
+    pwm.frequency = 1600
 
     return pwm
 
@@ -116,7 +116,7 @@ def input_bus_good(pwm):
 
 def initialize_run_LED():
     # RUN on board using GPIO18 (board pin 12)
-    run_LED = gpiozero.OutputDevice(18)
+    run_LED = gpiozero.LED(18)
     run_LED.off()
 
     return run_LED
@@ -720,8 +720,8 @@ def main():
     # initialize run LED
     run_LED = initialize_run_LED()
     
-    # illuminate run LED
-    run_LED.on()
+    # blink run LED forever
+    run_LED.blink(on_time=0.5, off_time=0.5)
 
 	# get default scene number
     default_id = read_default_scene_id(cursor)
