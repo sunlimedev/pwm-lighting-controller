@@ -4,9 +4,9 @@ require_once("/var/www/html/includes/session-check.php");
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
 {
-    // ensure we can connect to the database
     try
     {
+		// database connect
         $db = new PDO('sqlite:/home/user/project/database/lighting.db');
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 	}
@@ -36,15 +36,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 		Resetting Schedule Hours:
 		1 - copy time table from factory settings to main database
 		
+		Resetting Username and Password:
+		1 - delete existing user
+		2 - update sqlite_sequence table users value
+		
 		Order for multiple resets:
 		1 - Scenes and Connections
 		2 - Events
 		3 - Schedule Hours
+		4 - Username and Password
 		*/
 		
 		$scenes = isset($_POST['scenes']);
 		$events = isset($_POST['events']);
 		$schedule = isset($_POST['schedule']);
+		$user = isset($_POST['user']);
 		
 		try
 		{
@@ -72,6 +78,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 				$db->exec("DELETE FROM time");
 				$db->exec("INSERT INTO time SELECT * FROM factory.time");
 			}
+			
+			if($user)
+			{
+				$db->exec("DELETE FROM users");
+				$db->exec("UPDATE sqlite_sequence SET seq = 0 WHERE name = 'users'");
+			}
 
 			$db->commit();
 			$db->exec("DETACH DATABASE factory");
@@ -91,9 +103,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 
 try
 {
+	// database connect
 	$db = new PDO('sqlite:/home/user/project/database/lighting.db');
 	$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-	
+
+	// get current year for copyright footer
 	$stmt = $db->query("SELECT year FROM clock");
 	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 }
@@ -106,7 +120,7 @@ catch (PDOException $e)
 
 <!DOCTYPE html>
 <html lang="en">
-
+	
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -115,7 +129,7 @@ catch (PDOException $e)
 </head>
 
 <body class="bg-gray-100 min-h-screen">
-
+	<!-- logo and navigation buttons -->
 	<div class="text-center py-6 flex justify-between items-center max-w-md mx-auto pl-7 pr-7">
 		<span>
 			<a href="/settings.php" class="inline-block">
@@ -138,12 +152,12 @@ catch (PDOException $e)
 		</span>
 	</div>
 	
+	<!-- page header and tootip/action buttons -->
 	<div class="max-w-md mx-auto p-1">
 		<div class="flex justify-between items-center mb-2">
 			<h1 class="text-3xl font-semibold p-1">
 				Reset Options
 			</h1>
-		
 			<div class="relative pr-1">
 				<a href="#" id="toggle-info"
 					class="px-4 py-3 bg-purple-400 w-20 rounded-xl
@@ -153,8 +167,6 @@ catch (PDOException $e)
 						alt="Help"
 						class="w-12 h-6">
 				</a>
-
-				<!-- Floating popup -->
 				<div id="info-box"
 					class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
 					<p class="text-gray-800">
@@ -164,9 +176,9 @@ catch (PDOException $e)
 			</div>
 		</div>
     </div>
-
+    
+	<!-- form container with reset options -->
 	<div class="max-w-md mx-auto p-1">
-		<!-- big container for all of the scenes-->
 		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200">
 			<div class="p-4">
 				<div>
@@ -191,6 +203,12 @@ catch (PDOException $e)
 							</label>
 						</div>
 						<div>
+							<label class="flex items-center gap-2 mb-2">
+								<input type="checkbox" name="user" id="user" class="w-8 h-8">
+								<span>Reset Username and Password</span>
+							</label>
+						</div>
+						<div>
 							<label class="flex items-center gap-2 mb-2 font-bold">
 								<input type="checkbox" name="all" id="all" class="w-8 h-8">
 								<span>Reset ALL</span>
@@ -203,7 +221,6 @@ catch (PDOException $e)
 							</label>
 						</div>
 					</div>
-					
 					<div class="flex justify-between items-center mt-4">
 						<a href="/settings.php" 
 							class="px-4 py-3 bg-yellow-400 w-20 rounded-xl
@@ -218,26 +235,28 @@ catch (PDOException $e)
 					</div>
 					</form>
 				</div>
-				
 			</div>
 		</div>
 	</div>
-
+	
+	<!-- copyright footer -->
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
 		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
 <script>
+	// tooltip box
     const toggleBtn = document.getElementById('toggle-info');
     const infoBox = document.getElementById('info-box');
-
+	
+	// stop click through tooltip box
     toggleBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // prevent this click from reaching document
+        e.stopPropagation();
         infoBox.classList.toggle('hidden');
     });
 
-    // close when clicking anywhere else
+    // close tooltip when clicking elsewhere
     document.addEventListener('click', (e) => {
         if (!infoBox.contains(e.target) && !toggleBtn.contains(e.target)) {
             infoBox.classList.add('hidden');
@@ -246,37 +265,41 @@ catch (PDOException $e)
 </script>
 
 <script>
-const scenes = document.getElementById('scenes');
-const schedule = document.getElementById('schedule');
-const events = document.getElementById('events');
-const all = document.getElementById('all');
-const confirmBox = document.getElementById('confirm');
-const form = document.querySelector('form');
+	// checkboxes
+	const scenes = document.getElementById('scenes');
+	const schedule = document.getElementById('schedule');
+	const events = document.getElementById('events');
+	const user = document.getElementById('user');
+	const all = document.getElementById('all');
+	const confirmBox = document.getElementById('confirm');
+	const form = document.querySelector('form');
 
-// When "ALL" is checked → check the top 3
-all.addEventListener('change', () => {
-    const checked = all.checked;
-    scenes.checked = checked;
-    schedule.checked = checked;
-    events.checked = checked;
-});
+	// check above when all selected
+	all.addEventListener('change', () => {
+		const checked = all.checked;
+		scenes.checked = checked;
+		schedule.checked = checked;
+		events.checked = checked;
+		user.checked = checked;
+	});
 
-// When any of the top 3 change → update "ALL"
-function updateAllCheckbox() {
-    all.checked = scenes.checked && schedule.checked && events.checked;
-}
+	// if above four are checked, check all box, too
+	function updateAllCheckbox() {
+		all.checked = scenes.checked && schedule.checked && events.checked && user.checked;
+	}
 
-scenes.addEventListener('change', updateAllCheckbox);
-schedule.addEventListener('change', updateAllCheckbox);
-events.addEventListener('change', updateAllCheckbox);
+	scenes.addEventListener('change', updateAllCheckbox);
+	schedule.addEventListener('change', updateAllCheckbox);
+	events.addEventListener('change', updateAllCheckbox);
+	user.addEventListener('change', updateAllCheckbox);
 
-// Prevent submit unless "I understand" is checked
-form.addEventListener('submit', (e) => {
-    if (!confirmBox.checked) {
-        e.preventDefault();
-        alert("You must confirm before resetting.");
-    }
-});
+	// prevent submit unless "I understand" is checked
+	form.addEventListener('submit', (e) => {
+		if (!confirmBox.checked) {
+			e.preventDefault();
+			alert("You must confirm before resetting.");
+		}
+	});
 </script>
 
 </body>

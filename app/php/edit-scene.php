@@ -2,13 +2,12 @@
 require_once("/var/www/html/includes/user-check.php");
 require_once("/var/www/html/includes/session-check.php");
 
-// check if the key exists in the URL
 if (isset($_GET['scene_id']))
 {
     // ensure scene id is a valid integer
     $scene_id = filter_var($_GET['scene_id'], FILTER_VALIDATE_INT);
 	
-	// connect to lighting.db
+	// database connect
     $db = new PDO('sqlite:/home/user/project/database/lighting.db');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
@@ -16,16 +15,13 @@ if (isset($_GET['scene_id']))
 	$stmt = $db->query("SELECT scene_id FROM scenes");
 	$valid_scene_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
 	
-	// get specific scene's info
+	// get specific scene
     $stmt = $db->prepare("SELECT color0, color1, color2, color3, color4, color5, color6, color7, color8, color9 FROM scenes WHERE scene_id = :id");
-    // bind value ???
     $stmt->execute(['id' => $scene_id]);
-    // store info in rows1
     $color_row = $stmt->fetch(PDO::FETCH_ASSOC);
 	
 	// remove null colors
 	$preselected = [];
-
 	for ($i = 0; $i < 10; $i++)
 	{
 		$key = "color" . $i;
@@ -54,18 +50,218 @@ else
     exit;
 }
 
-// form name to db name
-$behavior_names_to_db = [
-	"Sequence - Solid"   => "sequence_solid",
-	"Sequence - Fade"    => "sequence_fade",
-	"Sequence - Decay"   => "sequence_decay",
-	"Sequence - Morse"   => "sequence_morse",
-	"Sequence - Wigwag"  => "sequence_wigwag",
-	"Sequence - SOS"     => "sequence_sos",
-	"Sequence - Breathe" => "sequence_breathe",
-	"Crossfade"          => "crossfade",
-	"Crossfade - Hold"   => "crossfade_hold"
+if ($_SERVER['REQUEST_METHOD'] === 'POST')
+{
+	try
+	{
+		// database connect
+        $db = new PDO('sqlite:/home/user/project/database/lighting.db');
+        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	}
+	catch (PDOException $e)
+	{
+		echo "Database error: " . $e->getMessage();
+		exit;
+	}
+	
+	// check that submitted id is valid
+	$scene_id = filter_input(INPUT_POST, 'scene_id', FILTER_VALIDATE_INT);
+	
+	// delete button logic
+	if (isset($_POST['delete_scene']))
+	{
+		try
+		{
+			$db->beginTransaction();
+			
+			$stmt = $db->query("SELECT scene_id FROM scenes WHERE is_default = 1");
+			$default_scene_id = $stmt->fetch(PDO::FETCH_COLUMN);
+			
+			// reset connections to default scene
+			$stmt = $db->prepare("
+				UPDATE connections
+				SET scene = :default
+				WHERE scene = :id
+			");
+			$stmt->execute([':default' => $default_scene_id, ':id' => $scene_id]);
+
+			// reset events to default scene
+			$stmt = $db->prepare("
+				UPDATE events
+				SET scene = :default
+				WHERE scene = :id
+			");
+			$stmt->execute([':default' => $default_scene_id, ':id' => $scene_id]);
+	
+			// delete the scene
+			$stmt = $db->prepare("
+				DELETE FROM scenes
+				WHERE scene_id = :id
+			");
+			
+			// disable test mode if on
+			$stmt->execute([':id' => $scene_id]);
+			$db->exec("UPDATE testmode SET flag = 0");
+
+			$db->commit();
+
+			header("Location: /scenes.php");
+			exit;
+		}
+		catch (PDOException $e)
+		{
+			$db->rollBack();
+			echo "Database error: " . $e->getMessage();
+			exit;
+		}
+	}
+	
+	// form name to db name
+	$behavior_names_to_db = [
+		"Sequence - Solid"   => "sequence_solid",
+		"Sequence - Fade"    => "sequence_fade",
+		"Sequence - Decay"   => "sequence_decay",
+		"Sequence - Morse"   => "sequence_morse",
+		"Sequence - Wigwag"  => "sequence_wigwag",
+		"Sequence - SOS"     => "sequence_sos",
+		"Sequence - Breathe" => "sequence_breathe",
+		"Crossfade"          => "crossfade",
+		"Crossfade - Hold"   => "crossfade_hold"
 	];
+	
+	// gather other scene parameters
+	$name = trim($_POST['name']);
+    $behavior = $_POST['behavior'];
+    $behavior = $behavior_names_to_db[$behavior];
+    $brightness = filter_input(INPUT_POST, 'brightness', FILTER_VALIDATE_INT);
+    $speed = filter_input(INPUT_POST, 'speed', FILTER_VALIDATE_INT);
+    
+    // get colors from color selector and make unselected null
+    $colors = [];
+	for ($i = 0; $i < 10; $i++)
+	{
+		if (isset($_POST["color$i"]) && $_POST["color$i"] !== "")
+		{
+			$colors[$i] = (int)$_POST["color$i"];
+		}
+		else
+		{
+			$colors[$i] = null;
+		}
+	}
+	
+	// test button logic
+	if (isset($_POST['test_scene']))
+	{
+		try
+		{
+			// signal 30s popup to play
+			echo json_encode(["status" => "ok"]);
+
+			$db->beginTransaction();
+			$stmt = $db->prepare("
+				UPDATE testmode
+				SET flag = 1,
+					reload = 1,
+					behavior = :behavior,
+					brightness = :brightness,
+					speed = :speed,
+					color0 = :color0,
+					color1 = :color1,
+					color2 = :color2,
+					color3 = :color3,
+					color4 = :color4,
+					color5 = :color5,
+					color6 = :color6,
+					color7 = :color7,
+					color8 = :color8,
+					color9 = :color9
+			");
+			$stmt->execute([
+				':behavior' => $behavior,
+				':brightness' => $brightness,
+				':speed' => $speed,
+				':color0' => $colors[0],
+				':color1' => $colors[1],
+				':color2' => $colors[2],
+				':color3' => $colors[3],
+				':color4' => $colors[4],
+				':color5' => $colors[5],
+				':color6' => $colors[6],
+				':color7' => $colors[7],
+				':color8' => $colors[8],
+				':color9' => $colors[9]
+			]);
+			
+			$db->commit();
+			exit;
+		}
+		catch (PDOException $e)
+		{
+			$db->rollBack();
+			echo json_encode(["status" => "error"]);
+			echo "Database error: " . $e->getMessage();
+			exit;
+		}
+	}
+	
+	// update table if id is valid
+    if ($scene_id !== false)
+    {
+        try
+        {
+			$db->beginTransaction();
+
+            $stmt = $db->prepare("
+                UPDATE scenes
+                SET name = :name,
+                    behavior = :behavior,
+                    brightness = :brightness,
+                    speed = :speed,
+                    color0 = :color0,
+                    color1 = :color1,
+                    color2 = :color2,
+                    color3 = :color3,
+                    color4 = :color4,
+                    color5 = :color5,
+                    color6 = :color6,
+                    color7 = :color7,
+                    color8 = :color8,
+                    color9 = :color9
+                WHERE scene_id = :id
+            ");
+            $stmt->execute([
+                ':name' => $name,
+                ':behavior' => $behavior,
+                ':brightness' => $brightness,
+                ':speed' => $speed,
+                ':id' => $scene_id,
+                ':color0' => $colors[0],
+                ':color1' => $colors[1],
+                ':color2' => $colors[2],
+                ':color3' => $colors[3],
+                ':color4' => $colors[4],
+                ':color5' => $colors[5],
+                ':color6' => $colors[6],
+                ':color7' => $colors[7],
+                ':color8' => $colors[8],
+                ':color9' => $colors[9]
+            ]);
+            
+            $db->exec("UPDATE testmode SET flag = 0");
+            $db->commit();
+
+            header("Location: /scenes.php");
+            exit;
+
+        }
+        catch (PDOException $e)
+        {
+            echo "Database error: " . $e->getMessage();
+            exit;
+        }
+    }
+}
 
 // array of db names
 $int_to_behavior_names_db = [
@@ -163,18 +359,12 @@ $color_files = [
 
 try
 {
-	// get specific scene's info
+	// get specific scene
     $stmt = $db->prepare("SELECT * FROM scenes WHERE scene_id = :id");
-    // bind value
     $stmt->execute(['id' => $scene_id]);
-    // store info in rows1
-    $rows1 = $stmt->fetch(PDO::FETCH_ASSOC);
+    $scene = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // get all color info
-    $stmt = $db->query("SELECT * FROM colors ORDER BY color_id ASC");
-    // store all color's info in rows2
-    $rows2 = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+    // get current year for copyright footer
     $stmt = $db->query("SELECT year FROM clock");
 	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 }
@@ -184,199 +374,6 @@ catch (PDOException $e)
 	// print the error on the webpage
     echo "Database error: " . $e->getMessage();
     exit;
-}
-
-// data handling for form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST')
-{
-	// check that submitted id is valid
-	$scene_id = filter_input(INPUT_POST, 'scene_id', FILTER_VALIDATE_INT);
-	
-	// delete button logic
-	if (isset($_POST['delete_scene']))
-	{
-		try
-		{
-			$db->beginTransaction();
-			
-			$stmt = $db->query("SELECT scene_id FROM scenes WHERE is_default = 1");
-			$default_scene_id = $stmt->fetch(PDO::FETCH_COLUMN);
-			
-			// Step 1: reset connections to default scene
-			$stmt = $db->prepare("
-				UPDATE connections
-				SET scene = :default
-				WHERE scene = :id
-			");
-			$stmt->execute([':default' => $default_scene_id, ':id' => $scene_id]);
-
-			// reset events to default scene
-			$stmt = $db->prepare("
-				UPDATE events
-				SET scene = :default
-				WHERE scene = :id
-			");
-			$stmt->execute([':default' => $default_scene_id, ':id' => $scene_id]);
-	
-			// Step 2: delete the scene
-			$stmt = $db->prepare("
-				DELETE FROM scenes
-				WHERE scene_id = :id
-			");
-			$stmt->execute([':id' => $scene_id]);
-			$db->exec("UPDATE testmode SET flag = 0");
-
-			$db->commit();
-
-			header("Location: /scenes.php");
-			exit;
-		}
-		catch (PDOException $e)
-		{
-			$db->rollBack();
-			echo "Database error: " . $e->getMessage();
-			exit;
-		}
-	}
-	
-	// gather other scene parameters
-	$name = trim($_POST['name']);
-    $behavior = $_POST['behavior'];
-    $behavior = $behavior_names_to_db[$behavior];
-    $brightness = filter_input(INPUT_POST, 'brightness', FILTER_VALIDATE_INT);
-    $speed = filter_input(INPUT_POST, 'speed', FILTER_VALIDATE_INT);
-    
-    // get colors from color selector and make unselected null
-    $colors = [];
-	for ($i = 0; $i < 10; $i++)
-	{
-		if (isset($_POST["color$i"]) && $_POST["color$i"] !== "")
-		{
-			$colors[$i] = (int)$_POST["color$i"];
-		}
-		else
-		{
-			$colors[$i] = null;
-		}
-	}
-	
-	// test button logic
-	if (isset($_POST['test_scene']))
-	{
-		try
-		{
-			$db->beginTransaction();
-			$db->query("UPDATE testmode SET flag = 0");
-			echo json_encode(["status" => "ok"]);
-			$db->commit();
-			
-			sleep(1);
-			
-			$db->beginTransaction();
-			$stmt = $db->prepare("
-				UPDATE testmode
-				SET flag = 1,
-					behavior = :behavior,
-					brightness = :brightness,
-					speed = :speed,
-					color0 = :color0,
-					color1 = :color1,
-					color2 = :color2,
-					color3 = :color3,
-					color4 = :color4,
-					color5 = :color5,
-					color6 = :color6,
-					color7 = :color7,
-					color8 = :color8,
-					color9 = :color9
-			");
-
-			$stmt->execute([
-				':behavior' => $behavior,
-				':brightness' => $brightness,
-				':speed' => $speed,
-				':color0' => $colors[0],
-				':color1' => $colors[1],
-				':color2' => $colors[2],
-				':color3' => $colors[3],
-				':color4' => $colors[4],
-				':color5' => $colors[5],
-				':color6' => $colors[6],
-				':color7' => $colors[7],
-				':color8' => $colors[8],
-				':color9' => $colors[9]
-			]);
-			$db->commit();
-			
-			exit;
-		}
-		catch (PDOException $e)
-		{
-			echo json_encode(["status" => "error"]);
-			exit;
-		}
-	}
-	
-	// update table if id is valid
-    if ($scene_id !== false)
-    {
-        try
-        {
-			$db = new PDO('sqlite:/home/user/project/database/lighting.db');
-            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-			$db->beginTransaction();
-
-            $stmt = $db->prepare("
-                UPDATE scenes
-                SET name = :name,
-                    behavior = :behavior,
-                    brightness = :brightness,
-                    speed = :speed,
-                    color0 = :color0,
-                    color1 = :color1,
-                    color2 = :color2,
-                    color3 = :color3,
-                    color4 = :color4,
-                    color5 = :color5,
-                    color6 = :color6,
-                    color7 = :color7,
-                    color8 = :color8,
-                    color9 = :color9
-                WHERE scene_id = :id
-            ");
-
-            $stmt->execute([
-                ':name' => $name,
-                ':behavior' => $behavior,
-                ':brightness' => $brightness,
-                ':speed' => $speed,
-                ':id' => $scene_id,
-                ':color0' => $colors[0],
-                ':color1' => $colors[1],
-                ':color2' => $colors[2],
-                ':color3' => $colors[3],
-                ':color4' => $colors[4],
-                ':color5' => $colors[5],
-                ':color6' => $colors[6],
-                ':color7' => $colors[7],
-                ':color8' => $colors[8],
-                ':color9' => $colors[9]
-            ]);
-            
-            $db->exec("UPDATE testmode SET flag = 0");
-            $db->commit();
-
-            header("Location: /scenes.php");
-            exit;
-
-        }
-        catch (PDOException $e)
-        {
-            echo "Database error: " . $e->getMessage();
-            exit;
-        }
-    }
 }
 ?>
 
@@ -391,8 +388,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 </head>
 
 <body class="bg-gray-100 min-h-screen">
-
-	<!-- signal-tech logo -->
+	<!-- logo and navigation buttons -->
 	<div class="text-center py-6 flex justify-between items-center max-w-md mx-auto pl-7 pr-7">
 		<span>
 			<a href="/scenes.php" class="inline-block">
@@ -415,14 +411,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 		</span>
 	</div>
 	
-	<!-- page header -->
+	<!-- page header and tootip/action buttons -->
 	<div class="max-w-md mx-auto p-1">
 		<div class="flex justify-between items-center mb-2">
 			<h1 class="text-3xl font-semibold p-1">
 				Edit Scene
 			</h1>
-
-			<!-- Floating popup -->
 			<div class="relative pr-1">
 				<a href="#" id="toggle-info"
 					class="px-4 py-3 bg-purple-400 w-20 rounded-xl
@@ -446,15 +440,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 			</div>
 		</div>
     </div>
+    
+    <!-- form container for all scenes settings -->
 	<div class="max-w-md mx-auto p-1">
 		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200">
 			<div class="p-4">
 				<form method="POST">
-					
 					<!-- hidden scene_id integer -->
 					<input type="hidden" name="scene_id" value="<?= $scene_id ?>">
-					
-					<!-- name field with read only for default scene -->
+					<!-- name field -->
 					<div class="font-medium">
 						<label for="name">Scene Name</label><br>
 						<input
@@ -462,17 +456,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 							type="text"
 							id="name"
 							name="name"
-							value="<?= htmlspecialchars($rows1['name']); ?>"
+							value="<?= htmlspecialchars($scene['name']); ?>"
 							maxlength = "100">
 					</div>
-						
 					<!-- behavior select dropdown with prefilled behavior string -->
 					<div class="font-medium">
 						<label for="behavior">Behavior</label><br>
 						<select class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="behavior" name="behavior"><br>
 							<optgroup label="Behavior">
 								<?php for ($i = 0; $i < 9; $i++): ?>
-									<?php if ($int_to_behavior_names_db[$i] == $rows1['behavior']): ?>
+									<?php if ($int_to_behavior_names_db[$i] == $scene['behavior']): ?>
 										<option selected="selected" value="<?= $int_to_behavior_names_styled[$i]; ?>">
 											<?= $int_to_behavior_names_styled[$i]; ?>
 										</option>
@@ -485,12 +478,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 							</optgroup>
 						</select>
 					</div>
-
 					<!-- brightness slider -->
 					<div class="font-medium">
 						<label for="brightness">Brightness</label><br>
 						<div class="bg-white border border-gray-200 rounded-xl px-4 pt-3 mb-2">
-							<input class="w-full" type="range" id="brightness" name="brightness" min="1" max="5" value="<?= $rows1['brightness']; ?>" step="1"/>
+							<input class="w-full" type="range" id="brightness" name="brightness" min="1" max="5" value="<?= $scene['brightness']; ?>" step="1"/>
 							<div class="flex justify-between items-center pl-1 pr-1 mb-2">
 								<span>1</span>
 								<span>2</span>
@@ -500,12 +492,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 							</div>
 						</div>
 					</div>
-
 					<!-- speed slider -->
 					<div class="font-medium">
 						<label for="speed">Speed</label><br>
 						<div class="bg-white border border-gray-200 rounded-xl px-4 pt-3 mb-2">
-							<input class="w-full" type="range" id="speed" name="speed" min="1" max="5" value="<?= $rows1['speed']; ?>" step="1"/>
+							<input class="w-full" type="range" id="speed" name="speed" min="1" max="5" value="<?= $scene['speed']; ?>" step="1"/>
 							<div class="flex justify-between items-center pl-1 pr-1 mb-2">
 								<span>1</span>
 								<span>2</span>
@@ -515,7 +506,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 							</div>
 						</div>
 					</div>
-
 					<!-- color changing code -->
 					<div class="font-medium">
 						<label for="speed">Colors (up to 10)</label><br>
@@ -533,7 +523,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 							<?php endforeach; ?>
 						</div>
 					</div>
-
 					<!-- selected colors box -->
 					<div class="border rounded-lg p-3 bg-white">
 						<div class="text-sm text-gray-600 mb-2">
@@ -541,10 +530,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 						</div>
 						<div id="selectedBox" class="flex flex-wrap gap-2"></div>
 					</div>
-					
 					<div id="hiddenInputs"></div>
-
-					<!-- save, delete, and cancel buttons -->
+					<!-- save, delete, test, and cancel buttons -->
 					<div class="flex justify-between items-center mt-4">
 						<a href="/scenes.php" 
 							class="px-4 py-3 bg-yellow-400 2-20 rounded-xl
@@ -552,9 +539,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 								transition">
 								Cancel
 						</a>
-						
-						<?php if($rows1['is_default'] != 1)
-						{   // placeholder -- do we need onclick idk
+						<!-- delete button only shown if scene is not selected as default -->
+						<?php if($scene['is_default'] != 1)
+						{
 							echo '<button
 							type="submit"
 							name="delete_scene"
@@ -565,12 +552,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 							</button>';
 						}
 						?>
-						
 						<button type="button" id="testBtn"
 							class="px-4 py-3 bg-blue-400 w-20 rounded-xl hover:bg-blue-500 transition">
 							Test
 						</button>
-						
 						<input class="px-4 py-3 bg-green-400 w-20 rounded-xl
 								hover:bg-green-500 active:scale-95
 								transition" type="submit" value="Save">
@@ -585,18 +570,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
-<!-- javascript for tooltip button -->
 <script>
+	// tooltip box
     const toggleBtn = document.getElementById('toggle-info');
     const infoBox = document.getElementById('info-box');
-
+	
+	// stop click through tooltip box
     toggleBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // prevent this click from reaching document
+        e.stopPropagation();
         infoBox.classList.toggle('hidden');
     });
 
-    // close when clicking anywhere else
+    // close tooltip when clicking elsewhere
     document.addEventListener('click', (e) => {
         if (!infoBox.contains(e.target) && !toggleBtn.contains(e.target)) {
             infoBox.classList.add('hidden');
@@ -605,9 +591,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 </script>
 
 <script>
+	// color grid and selector
 	const colorFiles = <?= json_encode($color_files) ?>;
 
-	/* preload selections */
+	// load colors in scene already
 	let selected = <?= json_encode($preselected) ?>;
 
 	const selectedBox = document.getElementById("selectedBox");
@@ -620,6 +607,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
     // tell PHP this is a test request
     formData.append("test_scene", "1");
 
+	// respond with ok or error if POST worked
     try {
         const response = await fetch("", {
             method: "POST",
@@ -637,7 +625,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
         console.error("Request error:", err);
     }
 	});
-	
+
+	// show selected colors in box
 	function renderSelected()
 	{
 		selectedBox.innerHTML = "";
@@ -655,6 +644,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 		updateInputs();
 	}
 
+	// add tapped color to selected box
 	function updateInputs()
 	{
 		hiddenInputs.innerHTML = "";
@@ -668,7 +658,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 	}
 
 
-	/* grid click handler */
+	// grid click handler
 	document.querySelectorAll(".color-btn").forEach(btn=>{
 		btn.addEventListener("click",()=>{
 			if(selected.length>=10)
@@ -679,6 +669,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 		});
 	});
 
+	// expand selected box if any are selected
 	if(selected.length>0)
 		renderSelected();
 </script>

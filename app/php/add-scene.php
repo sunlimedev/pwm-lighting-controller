@@ -2,19 +2,6 @@
 require_once("/var/www/html/includes/user-check.php");
 require_once("/var/www/html/includes/session-check.php");
 
-// form name to db name
-$behavior_names_to_db = [
-	"Sequence - Solid"   => "sequence_solid",
-	"Sequence - Fade"    => "sequence_fade",
-	"Sequence - Decay"   => "sequence_decay",
-	"Sequence - Morse"   => "sequence_morse",
-	"Sequence - Wigwag"  => "sequence_wigwag",
-	"Sequence - SOS"     => "sequence_sos",
-	"Sequence - Breathe" => "sequence_breathe",
-	"Crossfade"          => "crossfade",
-	"Crossfade - Hold"   => "crossfade_hold"
-];
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
 {
 	try
@@ -31,7 +18,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 	
 	// check that submitted id is valid
 	$scene_id = filter_input(INPUT_POST, 'scene_id', FILTER_VALIDATE_INT);
-		
+	
+	// form name to db name
+	$behavior_names_to_db = [
+		"Sequence - Solid"   => "sequence_solid",
+		"Sequence - Fade"    => "sequence_fade",
+		"Sequence - Decay"   => "sequence_decay",
+		"Sequence - Morse"   => "sequence_morse",
+		"Sequence - Wigwag"  => "sequence_wigwag",
+		"Sequence - SOS"     => "sequence_sos",
+		"Sequence - Breathe" => "sequence_breathe",
+		"Crossfade"          => "crossfade",
+		"Crossfade - Hold"   => "crossfade_hold"
+	];
+	
 	// gather other scene parameters
 	$name = trim($_POST['name']);
     $behavior = $_POST['behavior'];
@@ -168,6 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
                 ':color9' => $colors[9]
             ]);
             
+            // disable test mode if on
             $db->exec("UPDATE testmode SET flag = 0");
             $db->commit();
 
@@ -280,9 +281,9 @@ $color_files = [
 // no colors preselected for add scene
 $preselected = [];
 
-// database connect
 try
 {
+	// database connect
     $db = new PDO('sqlite:/home/user/project/database/lighting.db');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
@@ -290,10 +291,8 @@ try
     $stmt = $db->query("SELECT year FROM clock");
 	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 }
-// catch block to handle error
 catch (PDOException $e)
 {
-	// print the error on the webpage
     echo "Database error: " . $e->getMessage();
     exit;
 }
@@ -368,6 +367,7 @@ catch (PDOException $e)
 		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200">
 			<div class="p-4">
 				<form method="POST">
+					<!-- name field -->
 					<div class="font-medium">
 						<label for="name">Scene Name</label><br>
 						<input
@@ -378,6 +378,7 @@ catch (PDOException $e)
 							value=""
 							maxlength="100">
 					</div>
+					<!-- behavior dropdown -->
 					<div class="font-medium">
 						<label for="behavior">Behavior</label><br>
 						<select class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="behavior" name="behavior"><br>

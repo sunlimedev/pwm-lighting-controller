@@ -2,48 +2,6 @@
 require_once("/var/www/html/includes/user-check.php");
 require_once("/var/www/html/includes/session-check.php");
 
-// ensure we can connect to the database
-try
-{
-    $db = new PDO('sqlite:/home/user/project/database/lighting.db');
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        
-    // get current database date and time
-    $stmt = $db->prepare("SELECT * FROM clock");
-    $stmt->execute();
-    // store info in timestamp
-    $timestamp = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    $stmt = $db->query("SELECT year FROM clock");
-	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
-}
-catch (PDOException $e)
-{
-    echo "Database error: " . $e->getMessage();
-    exit;
-}
-
-if($timestamp['hour'] == 0)
-{
-	$timestamp['hour'] += 12;
-	$timestamp_ampm = "AM";
-}
-elseif($timestamp['hour'] == 12)
-{
-	$timestamp_ampm = "PM";
-}
-elseif($timestamp['hour'] < 12)
-{
-	$timestamp_ampm = "AM";
-}
-else //($timestamp['hour'] > 12)
-{
-	$timestamp['hour'] -= 12;
-	$timestamp_ampm = "PM";
-}
-
-
-// data handling for form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
 {
     $year = (int)$_POST['year'];
@@ -117,6 +75,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 		exit;
 	}
 }
+
+try
+{
+	// database connect
+    $db = new PDO('sqlite:/home/user/project/database/lighting.db');
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        
+    // get current database date and time
+    $stmt = $db->prepare("SELECT * FROM clock");
+    $stmt->execute();
+    $timestamp = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+	// get current year for copyright footer
+    $stmt = $db->query("SELECT year FROM clock");
+	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
+}
+catch (PDOException $e)
+{
+    echo "Database error: " . $e->getMessage();
+    exit;
+}
+
+// convert to 12hr time
+if($timestamp['hour'] == 0)
+{
+	$timestamp['hour'] += 12;
+	$timestamp_ampm = "AM";
+}
+elseif($timestamp['hour'] == 12)
+{
+	$timestamp_ampm = "PM";
+}
+elseif($timestamp['hour'] < 12)
+{
+	$timestamp_ampm = "AM";
+}
+else //($timestamp['hour'] > 12)
+{
+	$timestamp['hour'] -= 12;
+	$timestamp_ampm = "PM";
+}
 ?>
 
 <!DOCTYPE html>
@@ -130,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 </head>
 
 <body class="bg-gray-100 min-h-screen">
-
+	<!-- logo and navigation buttons -->
 	<div class="text-center py-6 flex justify-between items-center max-w-md mx-auto pl-7 pr-7">
 		<span>
 			<a href="/settings.php" class="inline-block">
@@ -152,13 +151,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 			</a>
 		</span>
 	</div>
-	
+
+	<!-- page header and tootip/action buttons -->
 	<div class="max-w-md mx-auto p-1">
 		<div class="flex justify-between items-center mb-2">
 			<h1 class="text-3xl font-semibold p-1">
 				Edit Date & Time
 			</h1>
-		
 			<div class="relative pr-1">
 				<a href="#" id="toggle-info"
 					class="px-4 py-3 bg-purple-400 w-20 rounded-xl
@@ -168,8 +167,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 						alt="Help"
 						class="w-12 h-6">
 				</a>
-
-				<!-- Floating popup -->
 				<div id="info-box"
 					class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
 					<p class="text-gray-800">
@@ -180,13 +177,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 		</div>
     </div>
 
+	<!-- form container with date and time options -->
 	<div class="max-w-md mx-auto p-1">
-		<!-- big container for all of the scenes-->
 		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200">
 			<div class="p-4">
 				<div>
 					<form method="POST">					
-					
 					<div class="font-medium">
 						<span class="flex items-center gap-1">
 							<label for="month" class="w-full">Month</label><br>
@@ -219,7 +215,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 							</select>
 						</span>
 					</div>
-					
 					<div class="font-medium">
 						<span class="flex items-center gap-1">
 							<label for="hour" class="w-full">Hour</label><br>
@@ -249,7 +244,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 							</select>
 						</span>
 					</div>
-					
 					<div class="flex justify-between items-center mt-4">
 							<a href="/settings.php" 
 								class="px-4 py-3 bg-yellow-400 w-20 rounded-xl
@@ -264,26 +258,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 					</div>
 					</form>
 				</div>
-				
 			</div>
 		</div>
 	</div>
 
+	<!-- copyright footer -->
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
 		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
 <script>
+	// tooltip box
     const toggleBtn = document.getElementById('toggle-info');
     const infoBox = document.getElementById('info-box');
-
+	
+	// stop click through tooltip box
     toggleBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // prevent this click from reaching document
+        e.stopPropagation();
         infoBox.classList.toggle('hidden');
     });
 
-    // close when clicking anywhere else
+    // close tooltip when clicking elsewhere
     document.addEventListener('click', (e) => {
         if (!infoBox.contains(e.target) && !toggleBtn.contains(e.target)) {
             infoBox.classList.add('hidden');
@@ -291,58 +287,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
     });
 </script>
 
-<!-- this js code renders the correct number of days for each month -->
 <script>
-const monthSelect = document.querySelector("select[name='month']");
-const daySelect   = document.querySelector("select[name='day']");
-const yearSelect  = document.querySelector("select[name='year']");
+	// render correct number or days for each month
+	const monthSelect = document.querySelector("select[name='month']");
+	const daySelect   = document.querySelector("select[name='day']");
+	const yearSelect  = document.querySelector("select[name='year']");
 
-function isLeapYear(year) {
-    return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
-}
+	function isLeapYear(year) {
+		return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+	}
 
-function getDaysInMonth(month, year) {
-    if (month === 2) {
-        return isLeapYear(year) ? 29 : 28;
-    }
+	function getDaysInMonth(month, year) {
+		if (month === 2) {
+			return isLeapYear(year) ? 29 : 28;
+		}
 
-    if ([4, 6, 9, 11].includes(month)) {
-        return 30;
-    }
+		if ([4, 6, 9, 11].includes(month)) {
+			return 30;
+		}
 
-    return 31;
-}
+		return 31;
+	}
 
-function updateDays() {
-    const month = parseInt(monthSelect.value);
-    const year  = parseInt(yearSelect.value);
+	function updateDays() {
+		const month = parseInt(monthSelect.value);
+		const year  = parseInt(yearSelect.value);
 
-    const daysInMonth = getDaysInMonth(month, year);
+		const daysInMonth = getDaysInMonth(month, year);
 
-    const currentDay = parseInt(daySelect.value);
+		const currentDay = parseInt(daySelect.value);
 
-    // clear existing options
-    daySelect.innerHTML = "";
+		daySelect.innerHTML = "";
 
-    for (let d = 1; d <= daysInMonth; d++) {
-        const option = document.createElement("option");
-        option.value = d;
-        option.textContent = d;
+		for (let d = 1; d <= daysInMonth; d++) {
+			const option = document.createElement("option");
+			option.value = d;
+			option.textContent = d;
 
-        if (d === currentDay) {
-            option.selected = true;
-        }
+			if (d === currentDay) {
+				option.selected = true;
+			}
 
-        daySelect.appendChild(option);
-    }
-}
+			daySelect.appendChild(option);
+		}
+	}
 
-// update when month or year changes
-monthSelect.addEventListener("change", updateDays);
-yearSelect.addEventListener("change", updateDays);
+	// update when month or year changes
+	monthSelect.addEventListener("change", updateDays);
+	yearSelect.addEventListener("change", updateDays);
 
-// run once on page load
-updateDays();
+	// run once on page load
+	updateDays();
 </script>
 
 </body>

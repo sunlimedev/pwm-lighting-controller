@@ -44,9 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 	}
 }
 
-// database connect
 try
 {
+    // database connect
     $db = new PDO('sqlite:/home/user/project/database/lighting.db');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
