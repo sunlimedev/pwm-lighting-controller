@@ -368,10 +368,8 @@ try
     $stmt = $db->query("SELECT year FROM clock");
 	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 }
-// catch block to handle error
 catch (PDOException $e)
 {
-	// print the error on the webpage
     echo "Database error: " . $e->getMessage();
     exit;
 }
