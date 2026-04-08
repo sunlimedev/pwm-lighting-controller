@@ -5,10 +5,9 @@ require_once("/var/www/html/includes/session-check.php");
 // check if the key exists in the URL
 if (isset($_GET['notify']))
 {
-    // ensure notify is a valid integer
     $notify = $_GET['notify'];
 
-	// redirect if there is an issue
+	// let user know that date is already occupied by event
 	$message = "Event already exists for " . $notify . ". Select a different day or edit/remove the existing event.";
 }
 
@@ -20,13 +19,12 @@ if (isset($_GET['event_id']))
 
     try
     {
-		// connect to lighting.db
+		// database connect
 		$db = new PDO('sqlite:/home/user/project/database/lighting.db');
 		$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 		// get all valid event_ids
 		$stmt = $db->query("SELECT event_id FROM events");
-		// store info in event_ids
 		$event_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
 	}
 	catch (PDOException $e)
@@ -49,27 +47,6 @@ else
     exit;
 }
 
-// get specific event's info
-$stmt = $db->prepare("SELECT * FROM events WHERE event_id = :id");
-// bind id value
-$stmt->execute(['id' => $event_id]);
-// store info in array
-$event_info = $stmt->fetch(PDO::FETCH_ASSOC);
-
-$stmt = $db->query("SELECT year FROM clock");
-$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
-
-// slice string into parts
-$event_year = (int)substr($event_info['date'], 0, 4);
-$event_month = (int)substr($event_info['date'], 5, 2);
-$event_day = (int)substr($event_info['date'], 8, 2);
-
-// get all scene info
-$stmt = $db->query("SELECT * FROM scenes ORDER BY scene_id ASC");
-// store all scene info in result
-$scenes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// data handling for form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
 {
     // delete button logic
@@ -115,12 +92,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 	$stmt = $db->query("SELECT date FROM events");
 	$event_dates = $stmt->fetchAll(PDO::FETCH_COLUMN);
 	
-	// do not allow event to be added if one exists on that day already
+	$stmt = $db->prepare("SELECT * FROM events WHERE event_id = :id");
+	$stmt->execute([':id' => $event_id]);
+	$current_event_info = $stmt->fetch(PDO::FETCH_ASSOC);
+	
+	// do not allow event to be added if one exists on that day already, but leave page if all identical
 	if(in_array($date_string, $event_dates))
 	{
-		$date_string = sprintf("%02d-%02d-%04d", $month, $day, $year);
-		header("Location: /edit-event.php?event_id=" . $event_id . "&notify=" . $date_string);
-        exit;
+		if ((int)$current_event_info['scene'] == $scene and $current_event_info['date'] == $date_string and $current_event_info['note'] == $note)
+		{
+			header("Location: /schedule.php");
+			exit;
+		}
+		else
+		{
+			$date_string = sprintf("%02d-%02d-%04d", $month, $day, $year);
+			header("Location: /edit-event.php?event_id=" . $event_id . "&notify=" . $date_string);
+			exit;
+		}
 	}
 
     if ($event_id !== false && $scene !== false)
@@ -155,6 +144,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
         }
     }
 }
+
+try
+{
+	// get specific event's info
+	$stmt = $db->prepare("SELECT * FROM events WHERE event_id = :id");
+	$stmt->execute(['id' => $event_id]);
+	$event_info = $stmt->fetch(PDO::FETCH_ASSOC);
+
+	// get current year for copyright footer
+	$stmt = $db->query("SELECT year FROM clock");
+	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
+
+	// slice string into parts
+	$event_year = (int)substr($event_info['date'], 0, 4);
+	$event_month = (int)substr($event_info['date'], 5, 2);
+	$event_day = (int)substr($event_info['date'], 8, 2);
+
+	// get all scenes
+	$stmt = $db->query("SELECT * FROM scenes ORDER BY scene_id ASC");
+	$scenes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+catch (PDOException $e)
+{
+	echo "Database error: " . $e->getMessage();
+	exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -168,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 </head>
 
 <body class="bg-gray-100 min-h-screen">
-
+	<!-- logo and navigation buttons -->
 	<div class="text-center py-6 flex justify-between items-center max-w-md mx-auto pl-7 pr-7">
 		<span>
 			<a href="/schedule.php" class="inline-block">
@@ -190,13 +205,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 			</a>
 		</span>
 	</div>
-	
+
+	<!-- page header and tootip/action buttons -->
 	<div class="max-w-md mx-auto p-1">
 		<div class="flex justify-between items-center mb-2">
 			<h1 class="text-3xl font-semibold p-1">
 				Edit Event
 			</h1>
-		
 			<div class="relative pr-1">
 				<a href="#" id="toggle-info"
 					class="px-4 py-3 bg-purple-400 w-20 rounded-xl
@@ -206,8 +221,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 						alt="Help"
 						class="w-12 h-6">
 				</a>
-
-				<!-- Floating popup -->
 				<div id="info-box"
 					class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
 					<p class="text-gray-800">
@@ -218,39 +231,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 		</div>
     </div>
 
+    <!-- form container for all event settings -->
 	<div class="max-w-md mx-auto p-1">
+		<!-- duplicate date alert -->
 		<?= $message != 0 ? '<div class="text-red-700 text-left text-xl font-bold p-1 mb-2"> ' . $message . ' </div>' : '' ?>
-		<!-- big container for all of the scenes-->
 		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200">
 			<div class="p-4">
 				<div>
 					<form method="POST">
+					<!-- hidden event id integer -->
 					<input type="hidden" name="event_id" value="<?= $event_id ?>">
-					
+					<!-- scene dropdown -->
 					<div class="font-medium">
 						<label for="scene">Linked Scene</label><br>
 						<select class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="scene" name="scene"><br>
 							<optgroup label="User Scenes">
 								<?php foreach ($scenes as $row): ?>
-
 									<?php
 										$selected = ($event_info['scene'] == $row['scene_id']) ? 'selected' : '';
 									?>
-
 									<option value="<?= $row['scene_id']; ?>" <?= $selected; ?>>
 										<?= $row['name']; ?>
 									</option>
-
 								<?php endforeach; ?>
 							</optgroup>
 						</select>
 					</div>
-					
+					<!-- note field -->
 					<div class="font-medium">
 						<label for="note">Note</label><br>
 						<input class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="note" name="note" value="<?php echo htmlspecialchars($event_info['note']);?>" maxlength="200">
 					</div>
-					
 					<div class="font-medium">
 						<span class="flex items-center gap-1">
 							<label for="month" class="w-full">Month</label><br>
@@ -258,7 +269,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 							<label for="year" class="w-full">Year</label><br>
 						<span>
 					</div>
-					
+					<!-- date dropdowns -->
 					<div class="font-medium">
 						<span class="flex items-center gap-1">
 							<select name="month" class="bg-white border border-gray-200 rounded-xl px-4 py-3 w-full">
@@ -284,7 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 							</select>
 						</span>
 					</div>
-					
+					<!-- save, delete, and cancel buttons -->
 					<div class="flex justify-between items-center mt-4">
 							<a href="/events.php" 
 								class="px-4 py-3 bg-yellow-400 w-20 rounded-xl
@@ -292,41 +303,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 								transition flex items-center justify-center">
 								Cancel
 							</a>
-							
 							<button	type="submit"
 									name="delete_scene"
 									value="1"
 									onclick="return confirm('Are you sure you want to delete this event?');"
 									class="px-4 py-3 bg-red-400 w-20 rounded-xl hover:bg-red-500 transition">
 								Delete
-							</button>
-											
+							</button>		
 							<input class="px-4 py-3 bg-green-400 w-20 rounded-xl
 								hover:bg-green-500 active:scale-95
 								transition flex items-center justify-center" type="submit" value="Save">
 					</div>
 					</form>
 				</div>
-				
 			</div>
 		</div>
 	</div>
 
+	<!-- copyright footer -->
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
 		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
 <script>
+	// tooltip box
     const toggleBtn = document.getElementById('toggle-info');
     const infoBox = document.getElementById('info-box');
-
+	
+	// stop click through tooltip box
     toggleBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // prevent this click from reaching document
+        e.stopPropagation();
         infoBox.classList.toggle('hidden');
     });
 
-    // close when clicking anywhere else
+    // close tooltip when clicking elsewhere
     document.addEventListener('click', (e) => {
         if (!infoBox.contains(e.target) && !toggleBtn.contains(e.target)) {
             infoBox.classList.add('hidden');
@@ -334,58 +345,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
     });
 </script>
 
-<!-- this js code renders the correct number of days for each month -->
 <script>
-const monthSelect = document.querySelector("select[name='month']");
-const daySelect   = document.querySelector("select[name='day']");
-const yearSelect  = document.querySelector("select[name='year']");
+	// correct days per month logic
+	const monthSelect = document.querySelector("select[name='month']");
+	const daySelect   = document.querySelector("select[name='day']");
+	const yearSelect  = document.querySelector("select[name='year']");
 
-function isLeapYear(year) {
-    return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
-}
+	function isLeapYear(year) {
+		return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+	}
 
-function getDaysInMonth(month, year) {
-    if (month === 2) {
-        return isLeapYear(year) ? 29 : 28;
-    }
+	function getDaysInMonth(month, year) {
+		if (month === 2) {
+			return isLeapYear(year) ? 29 : 28;
+		}
 
-    if ([4, 6, 9, 11].includes(month)) {
-        return 30;
-    }
+		if ([4, 6, 9, 11].includes(month)) {
+			return 30;
+		}
+		return 31;
+	}
 
-    return 31;
-}
+	function updateDays() {
+		const month = parseInt(monthSelect.value);
+		const year  = parseInt(yearSelect.value);
 
-function updateDays() {
-    const month = parseInt(monthSelect.value);
-    const year  = parseInt(yearSelect.value);
+		const daysInMonth = getDaysInMonth(month, year);
 
-    const daysInMonth = getDaysInMonth(month, year);
+		const currentDay = parseInt(daySelect.value);
 
-    const currentDay = parseInt(daySelect.value);
+		// clear existing options
+		daySelect.innerHTML = "";
 
-    // clear existing options
-    daySelect.innerHTML = "";
+		for (let d = 1; d <= daysInMonth; d++) {
+			const option = document.createElement("option");
+			option.value = d;
+			option.textContent = d;
 
-    for (let d = 1; d <= daysInMonth; d++) {
-        const option = document.createElement("option");
-        option.value = d;
-        option.textContent = d;
+			if (d === currentDay) {
+				option.selected = true;
+			}
 
-        if (d === currentDay) {
-            option.selected = true;
-        }
+			daySelect.appendChild(option);
+		}
+	}
 
-        daySelect.appendChild(option);
-    }
-}
+	// update when month or year changes
+	monthSelect.addEventListener("change", updateDays);
+	yearSelect.addEventListener("change", updateDays);
 
-// update when month or year changes
-monthSelect.addEventListener("change", updateDays);
-yearSelect.addEventListener("change", updateDays);
-
-// run once on page load
-updateDays();
+	// run once on page load
+	updateDays();
 </script>
 
 </body>

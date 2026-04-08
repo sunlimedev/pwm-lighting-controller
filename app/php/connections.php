@@ -2,38 +2,33 @@
 require_once("/var/www/html/includes/user-check.php");
 require_once("/var/www/html/includes/session-check.php");
 
-// php try block so a database error does not crash the page
 try
 {
-	// create database object using sqlite driver and file path
+	// database connect
     $db = new PDO('sqlite:/home/user/project/database/lighting.db');
-    // throw error on database failure
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-	// statement object is a container holding result of query
+	// get all connections
     $stmt = $db->query("SELECT * FROM connections ORDER BY connection_id ASC");
-    // extract each row as an array of values
-    $rows1 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $connections = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-	// statement object is a container holding result of query
+	// get scene ids and names
     $stmt = $db->query("SELECT scene_id, name FROM scenes ORDER BY scene_id ASC");
-    // extract each row as an array of values
-    $rows2 = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+    $scene_ids_names = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
     // make scene_id name key value pair array
     $scenes = [];
-	foreach ($rows2 as $row)
+	foreach ($scene_ids_names as $row)
 	{
 		$scenes[$row['scene_id']] = $row['name'];
 	}
-	
+
+	// get current year for copyright footer
 	$stmt = $db->query("SELECT year FROM clock");
 	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 }
-// catch block to handle error
 catch (PDOException $e)
 {
-	// print the error on the webpage
     echo "Database error: " . $e->getMessage();
     exit;
 }
@@ -41,6 +36,7 @@ catch (PDOException $e)
 
 <!DOCTYPE html>
 <html lang="en">
+	
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -49,7 +45,7 @@ catch (PDOException $e)
 </head>
 
 <body class="bg-gray-100 min-h-screen">
-	
+	<!-- logo and navigation buttons -->
 	<div class="text-center py-6 flex justify-between items-center max-w-md mx-auto pl-7 pr-7">
 		<span>
 			<a href="/home.php" class="inline-block">
@@ -72,12 +68,12 @@ catch (PDOException $e)
 		</span>
 	</div>
 
+	<!-- page header and tootip/action buttons -->
 	<div class="max-w-md mx-auto p-1">
 		<div class="flex justify-between items-center mb-2">
 			<h1 class="text-3xl font-semibold p-1">
 				Connections
 			</h1>
-
 			<a href="/connections.php" 
 			class="px-4 py-3 bg-blue-400 w-20 rounded-xl
 					hover:bg-blue-500 active:scale-95
@@ -87,7 +83,6 @@ catch (PDOException $e)
 					alt="Refresh" 
 					class="w-8 h-6">
 			</a>
-			
 			<div class="relative pr-1">
 				<a href="#" id="toggle-info"
 					class="px-4 py-3 bg-purple-400 w-20 rounded-xl
@@ -97,8 +92,6 @@ catch (PDOException $e)
                      alt="Help"
                      class="w-12 h-6">
 				</a>
-
-					<!-- Floating popup -->
 				<div id="info-box"
 					class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
 					<p class="text-gray-700">
@@ -112,18 +105,16 @@ catch (PDOException $e)
 			</div>
 		</div>
 	</div>
-
-    <div class="max-w-md mx-auto p-1">
 	
-		<!-- big container for all of the connections-->
+    <!-- container for all connections and buttons -->
+    <div class="max-w-md mx-auto p-1">
 		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200">
-			<?php foreach ($rows1 as $row): ?>
-
+			<?php foreach ($connections as $connection): ?>
 			<div class="p-4">
 				<div class="flex justify-between items-center">
 					<span class="font-medium text-left whitespace-nowrap pr-8">
 						<?php
-							if($row['is_active'] == 1)
+							if($connection['is_active'] == 1)
 							{
 								echo "🟢";
 							}
@@ -131,26 +122,24 @@ catch (PDOException $e)
 							{
 								echo "🔴";
 							}
-							echo " - Connection " . $row['connection_id'];
+							echo " - Connection " . $connection['connection_id'];
 						?>
 					</span>
-
 					<span class="text-right truncate">
 						<?php
-							$index = (int) $row['scene'];
+							$index = (int) $connection['scene'];
 							echo "Scene: " . $scenes[$index];
 						?>
 					</span>
 				</div>
-			
 				<div class="mb-2 break-words">
 						<span class="text-gray-700">
-						<?php echo "Note: " . $row['note']; ?>
+						<?php echo "Note: " . $connection['note']; ?>
 						</span>
 				</div>
 				<div class="relative">
 						<?php
-							echo '<a href="edit-connection.php?connection_id=' . $row['connection_id'] . '" id="toggle-info"
+							echo '<a href="edit-connection.php?connection_id=' . $connection['connection_id'] . '" id="toggle-info"
 									class="px-4 py-3 bg-yellow-400 rounded-xl
 									hover:bg-yellow-500 active:scale-95
 									transition flex items-center justify-center">
@@ -161,29 +150,33 @@ catch (PDOException $e)
 			</div>
 			<?php endforeach; ?>
 		</div>
-		
 	</div>
-	
+
+	<!-- copyright footer -->
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
 		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
 <script>
+	// tooltip box
     const toggleBtn = document.getElementById('toggle-info');
     const infoBox = document.getElementById('info-box');
-
+	
+	// stop click through tooltip box
     toggleBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // prevent this click from reaching document
+        e.stopPropagation();
         infoBox.classList.toggle('hidden');
     });
 
-    // close when clicking anywhere else
+    // close tooltip when clicking elsewhere
     document.addEventListener('click', (e) => {
         if (!infoBox.contains(e.target) && !toggleBtn.contains(e.target)) {
             infoBox.classList.add('hidden');
         }
     });
 </script>
+
 </body>
+
 </html>

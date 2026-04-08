@@ -2,7 +2,6 @@
 require_once("/var/www/html/includes/user-check.php");
 require_once("/var/www/html/includes/session-check.php");
 
-// check if the key exists in the URL
 if (isset($_GET['connection_id']))
 {
     // ensure connection_id is a valid integer
@@ -30,7 +29,6 @@ else
     exit;
 }
 
-// data handling for form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
 {
     $connection_id = filter_input(INPUT_POST, 'connection_id', FILTER_VALIDATE_INT);
@@ -41,9 +39,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
     {
         try
         {
+			// database connect
             $db = new PDO('sqlite:/home/user/project/database/lighting.db');
             $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
+			
+			// update connection linked scene and note
             $stmt = $db->prepare("
                 UPDATE connections
                 SET scene = :scene,
@@ -69,32 +69,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
     }
 }
 
-// try database connection
 try
 {
-	// connect to lighting.db
+	// database connect
     $db = new PDO('sqlite:/home/user/project/database/lighting.db');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-	// get specific connection's info
+	// get specific connection
     $stmt = $db->prepare("SELECT * FROM connections WHERE connection_id = :id");
-    // bind id value
     $stmt->execute(['id' => $connection_id]);
-    // store info in rows1
-    $rows1 = $stmt->fetch(PDO::FETCH_ASSOC);
+    $connection = $stmt->fetch(PDO::FETCH_ASSOC);
     
     // get all scene info
     $stmt = $db->query("SELECT * FROM scenes ORDER BY scene_id ASC");
-    // store all scene info in rows2
-    $rows2 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $scenes = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    // get current year for copyright footer
     $stmt = $db->query("SELECT year FROM clock");
 	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 }
-// catch block to handle error
 catch (PDOException $e)
 {
-	// print the error on the webpage
     echo "Database error: " . $e->getMessage();
     exit;
 }
@@ -111,7 +106,7 @@ catch (PDOException $e)
 </head>
 
 <body class="bg-gray-100 min-h-screen">
-
+	<!-- logo and navigation buttons -->
 	<div class="text-center py-6 flex justify-between items-center max-w-md mx-auto pl-7 pr-7">
 		<span>
 			<a href="/connections.php" class="inline-block">
@@ -133,13 +128,13 @@ catch (PDOException $e)
 			</a>
 		</span>
 	</div>
-	
+
+	<!-- page header and tootip/action buttons -->
 	<div class="max-w-md mx-auto p-1">
 		<div class="flex justify-between items-center mb-2">
 			<h1 class="text-3xl font-semibold p-1">
 				<?php echo "Edit Connection " . $connection_id?>
 			</h1>
-		
 			<div class="relative pr-1">
 				<a href="#" id="toggle-info"
 					class="px-4 py-3 bg-purple-400 w-20 rounded-xl
@@ -149,8 +144,6 @@ catch (PDOException $e)
 						alt="Help"
 						class="w-12 h-6">
 				</a>
-
-				<!-- Floating popup -->
 				<div id="info-box"
 					class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
 					<p class="text-gray-800">
@@ -161,36 +154,34 @@ catch (PDOException $e)
 		</div>
     </div>
 
+    <!-- form container for connection settings -->
 	<div class="max-w-md mx-auto p-1">
-		<!-- big container for all of the scenes-->
 		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200">
 			<div class="p-4">
 				<div>
 					<form method="POST">
+					<!-- hidden connection_id integer -->
 					<input type="hidden" name="connection_id" value="<?= $connection_id ?>">
-					
+					<!-- scene dropdown -->
 					<div class="font-medium">
 						<label for="scene">Linked Scene</label><br>
 						<select class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="scene" name="scene"><br>
 							<optgroup label="User Scenes">
-								<?php foreach ($rows2 as $row): ?>
-
+								<?php foreach ($scenes as $scene): ?>
 									<?php
-										$selected = ($rows1['scene'] == $row['scene_id']) ? 'selected' : '';
+										$selected = ($connection['scene'] == $scene['scene_id']) ? 'selected' : '';
 									?>
-
-									<option value="<?= $row['scene_id']; ?>" <?= $selected; ?>>
-										<?= $row['name']; ?>
+									<option value="<?= $scene['scene_id']; ?>" <?= $selected; ?>>
+										<?= $scene['name']; ?>
 									</option>
-
 								<?php endforeach; ?>
 							</optgroup>
 						</select>
 					</div>
-					
+					<!-- note field -->
 					<div class="font-medium">
 						<label for="note">Note</label><br>
-						<input class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="note" name="note" value="<?php echo htmlspecialchars($rows1['note']);?>" maxlength="200">
+						<input class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="note" name="note" value="<?php echo htmlspecialchars($connection['note']);?>" maxlength="200">
 					</div>
 					<div class="flex justify-between items-center mt-2">
 							<a href="/connections.php" 
@@ -198,34 +189,35 @@ catch (PDOException $e)
 								hover:bg-yellow-500 active:scale-95
 								transition flex items-center justify-center">
 								Cancel
-							</a>
-											
+							</a>			
 							<input class="px-4 py-3 bg-green-400 w-20 rounded-xl
 								hover:bg-green-500 active:scale-95
 								transition flex items-center justify-center" type="submit" value="Save">
 					</div>
 					</form>
 				</div>
-				
 			</div>
 		</div>
 	</div>
 
+	<!-- copyright footer -->
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
 		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
 <script>
+	// tooltip box
     const toggleBtn = document.getElementById('toggle-info');
     const infoBox = document.getElementById('info-box');
-
+	
+	// stop click through tooltip box
     toggleBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // prevent this click from reaching document
+        e.stopPropagation();
         infoBox.classList.toggle('hidden');
     });
 
-    // close when clicking anywhere else
+    // close tooltip when clicking elsewhere
     document.addEventListener('click', (e) => {
         if (!infoBox.contains(e.target) && !toggleBtn.contains(e.target)) {
             infoBox.classList.add('hidden');

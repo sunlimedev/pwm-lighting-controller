@@ -2,43 +2,37 @@
 require_once("/var/www/html/includes/user-check.php");
 require_once("/var/www/html/includes/session-check.php");
 
-// php try block so a database error does not crash the page
 try
 {
-	// create database object using sqlite driver and file path
+	// database connect
     $db = new PDO('sqlite:/home/user/project/database/lighting.db');
-    // throw error on database failure
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-	// statement object is a container holding result of query
+	// get weekly schedule
     $stmt = $db->query("SELECT * FROM time ORDER BY weekday_id ASC");
-    // extract each row as an array of values
-    $rows1 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $week_schedule = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // statement object is a container holding result of query
+    // get all events
     $stmt = $db->query("SELECT * FROM events ORDER BY date ASC");
-    // extract each row as an array of values
-    $rows2 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-	// statement object is a container holding result of query
+	// get scene ids and names
     $stmt = $db->query("SELECT scene_id, name FROM scenes ORDER BY scene_id ASC");
-    // extract each row as an array of values
-    $rows3 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $scene_ids_names = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // make scene_id name key value pair array
     $scenes = [];
-	foreach ($rows3 as $row)
+	foreach ($scene_ids_names as $row)
 	{
 		$scenes[$row['scene_id']] = $row['name'];
 	}
-	
+
+	// get current year for copyright footer
 	$stmt = $db->query("SELECT year FROM clock");
 	$copyright_year = $stmt->fetch(PDO::FETCH_COLUMN);
 }
-// catch block to handle error
 catch (PDOException $e)
 {
-	// print the error on the webpage
     echo "Database error: " . $e->getMessage();
     exit;
 }
@@ -73,6 +67,7 @@ $month_names = [
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -81,7 +76,7 @@ $month_names = [
 </head>
 
 <body class="bg-gray-100 min-h-screen">
-	
+	<!-- logo and navigation buttons -->
 	<div class="text-center py-6 flex justify-between items-center max-w-md mx-auto pl-7 pr-7">
 		<span>
 			<a href="/home.php" class="inline-block">
@@ -104,13 +99,12 @@ $month_names = [
 		</span>
 	</div>
 
+	<!-- schedule page header and tootip/action buttons -->
 	<div class="max-w-md mx-auto p-1">
 		<div class="flex justify-between items-center mb-2">
 			<h1 class="text-3xl font-semibold p-1">
 				Lighting Schedule
 			</h1>
-		
-			<!-- Button container -->
 			<div class="relative pr-1">
             <a href="#" id="toggle-info1"
                class="px-4 py-3 bg-purple-400 w-20 rounded-xl
@@ -120,8 +114,6 @@ $month_names = [
                      alt="Help"
                      class="w-12 h-6">
             </a>
-
-            <!-- Floating popup -->
             <div id="info-box1"
                  class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
                 <p class="text-gray-700">
@@ -131,69 +123,59 @@ $month_names = [
         </div>
 		</div>
     </div>
-
-
+    
+    <!-- container for schedule and edit button -->
 	<div class="max-w-md mx-auto p-1">
-
-		<!-- big container for all of the weekdays-->
 		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200 flex flex-col mb-6">
-			<?php $count = 0; ?>
-			<?php foreach ($rows1 as $row):
-
-				if($row['open_hour'] == $row['close_hour'] and $row['open_minute'] == $row['close_minute'])
+			<?php foreach ($week_schedule as $day):
+				if($day['open_hour'] == $day['close_hour'] and $day['open_minute'] == $day['close_minute'])
 				{
 					$hours = "None";
 				}
-				elseif($row['open_hour'] == 0 and $row['open_minute'] == 0 and $row['close_hour'] == 24 and $row['close_minute'] == 0)
+				elseif($day['open_hour'] == 0 and $day['open_minute'] == 0 and $day['close_hour'] == 24 and $day['close_minute'] == 0)
 				{
 					$hours = "All day";
 				}
 				else
 				{
-					if($row['open_hour'] > 12) {
-						$open = sprintf("%2d:%02dp", $row['open_hour'] - 12, $row['open_minute']);
-					} elseif($row['open_hour'] == 12) {
-						$open = sprintf("%2d:%02dp", $row['open_hour'], $row['open_minute']);
-					} elseif($row['open_hour'] == 0) {
-						$open = sprintf("%2d:%02da", $row['open_hour'] + 12, $row['open_minute']);
+					if($day['open_hour'] > 12) {
+						$open = sprintf("%2d:%02dp", $day['open_hour'] - 12, $day['open_minute']);
+					} elseif($day['open_hour'] == 12) {
+						$open = sprintf("%2d:%02dp", $day['open_hour'], $day['open_minute']);
+					} elseif($day['open_hour'] == 0) {
+						$open = sprintf("%2d:%02da", $day['open_hour'] + 12, $day['open_minute']);
 					} else {
-						$open = sprintf("%2d:%02da", $row['open_hour'], $row['open_minute']);
+						$open = sprintf("%2d:%02da", $day['open_hour'], $day['open_minute']);
 					}
-				
-					if($row['close_hour'] > 12) {
-						if($row['close_hour'] == 24 and $row['close_minute'] == 0)
+					if($day['close_hour'] > 12) {
+						if($day['close_hour'] == 24 and $day['close_minute'] == 0)
 						{
 							$close = "11:59p";
 						}
 						else
 						{
-							$close = sprintf("%2d:%02dp", $row['close_hour'] - 12, $row['close_minute']);
+							$close = sprintf("%2d:%02dp", $day['close_hour'] - 12, $day['close_minute']);
 						}
-					} elseif($row['close_hour'] == 12) {
-						$close = sprintf("%2d:%02dp", $row['close_hour'], $row['close_minute']);
-					} elseif($row['close_hour'] == 0) {
-						$close = sprintf("%2d:%02da", $row['close_hour'] + 12, $row['close_minute']);
+					} elseif($day['close_hour'] == 12) {
+						$close = sprintf("%2d:%02dp", $day['close_hour'], $day['close_minute']);
+					} elseif($day['close_hour'] == 0) {
+						$close = sprintf("%2d:%02da", $day['close_hour'] + 12, $day['close_minute']);
 					} else {
-						$close = sprintf("%2d:%02da", $row['close_hour'], $row['close_minute']);
+						$close = sprintf("%2d:%02da", $day['close_hour'], $day['close_minute']);
 					}
-					
 					$hours = $open . " – " . $close;
-					$count++;
 				}
-				
-				$day = $weekday_names[$row['weekday_id']];
+				$day_name = $weekday_names[$day['weekday_id']];
 			?>
-
 			<div class="flex justify-between items-center p-4">
 				<span class="font-medium">
-					<?php echo $day; ?>
+					<?php echo $day_name; ?>
 				</span>
 
 				<span class="text-gray-700">
 					<?php echo $hours; ?>
 				</span>
 			</div>
-
 			<?php endforeach; ?>
 			<div class="mt-auto p-4">
 				<span>
@@ -208,12 +190,12 @@ $month_names = [
 		</div>
 	</div>
 	
+	<!-- event page header and tootip/action buttons -->
 	<div class="max-w-md mx-auto p-1">
 		<div class="flex justify-between items-center mb-2">
 			<h1 class="text-3xl font-semibold p-1">
 				Event Schedule
 			</h1>
-			
 			<a href="/add-event.php" 
 			class="px-4 py-3 bg-blue-400 w-20 rounded-xl
 					hover:bg-blue-500 active:scale-95
@@ -223,8 +205,6 @@ $month_names = [
 					alt="Add scene" 
 					class="w-12 h-6">
 			</a>
-			
-			<!-- Button container -->
         <div class="relative">
             <a href="#" id="toggle-info2"
                class="px-4 py-3 bg-purple-400 w-20 rounded-xl
@@ -234,8 +214,6 @@ $month_names = [
                      alt="Help"
                      class="w-12 h-6">
             </a>
-
-            <!-- Floating popup -->
             <div id="info-box2"
                  class="absolute right-0 mt-2 w-64 bg-white p-4 rounded-lg shadow-lg hidden z-50">
                 <p class="text-gray-700">
@@ -246,19 +224,15 @@ $month_names = [
 		</div>
     </div>
 	
+	<!-- container for events and buttons -->
 	<div class="max-w-md mx-auto p-1">
-	
-		<!-- big container for all of the events-->
 		<div class="bg-gray-50 rounded-lg divide-y divide-gray-200">
-			<?php foreach ($rows2 as $row):
-				$month = $month_names[substr($row['date'], 5, 2)];
-				$day = substr($row['date'], 8, 2);
-				$year = substr($row['date'], 0, 4);
+			<?php foreach ($events as $event):
+				$month = $month_names[substr($event['date'], 5, 2)];
+				$day = substr($event['date'], 8, 2);
+				$year = substr($event['date'], 0, 4);
 			?>
-
 			<div class="p-4">
-
-				<!-- First row -->
 				<div class="flex justify-between items-center">
 					<span class="font-medium text-left whitespace-nowrap pr-8">
 						<?php echo $month . " " . $day . ", " . $year; ?>
@@ -266,22 +240,19 @@ $month_names = [
 
 					<span class="text-right truncate">
 						<?php
-							$index = (int) $row['scene'];
+							$index = (int) $event['scene'];
 							echo "Scene: " . $scenes[$index];
 						?>
 					</span>
 				</div>
-
-				<!-- Second row -->
 				<div class="mb-2 break-words">
 					<span class="text-gray-700">
-						<?php echo "Note: " . $row['note']; ?>
+						<?php echo "Note: " . $event['note']; ?>
 					</span>
 				</div>
-				
 				<div class="relative">
 						<?php
-							echo '<a href="edit-event.php?event_id=' . $row['event_id'] . '" id="toggle-info"
+							echo '<a href="edit-event.php?event_id=' . $event['event_id'] . '" id="toggle-info"
 									class="px-4 py-3 bg-yellow-400 rounded-xl
 									hover:bg-yellow-500 active:scale-95
 									transition flex items-center justify-center">
@@ -289,35 +260,36 @@ $month_names = [
 								</a>';
 						?>
 				</div>
-
 			</div>
 			<?php endforeach; ?>
 		</div>
 	</div>
-	
+
+	<!-- copyright footer -->
 	<div class="text-center text-gray-400 text-sm mt-8 mb-8">
 		v1.0 - © <?= $copyright_year ?> Signal-Tech 
 	</div>
 
 <script>
+	// tooltip box
     const toggleBtn1 = document.getElementById('toggle-info1');
     const infoBox1 = document.getElementById('info-box1');
     const toggleBtn2 = document.getElementById('toggle-info2');
     const infoBox2 = document.getElementById('info-box2');
 
+	// stop click through tooltip box
     toggleBtn1.addEventListener('click', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // prevent this click from reaching document
+        e.stopPropagation();
         infoBox1.classList.toggle('hidden');
     });
-    
     toggleBtn2.addEventListener('click', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // prevent this click from reaching document
+        e.stopPropagation();
         infoBox2.classList.toggle('hidden');
     });
     
-    // close when clicking anywhere else
+    // close tooltip when clicking elsewhere
     document.addEventListener('click', (e) => {
         if (!infoBox1.contains(e.target) && !toggleBtn1.contains(e.target)) {
             infoBox1.classList.add('hidden');
@@ -329,4 +301,5 @@ $month_names = [
 </script>
 
 </body>
+
 </html>
