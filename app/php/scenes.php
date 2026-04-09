@@ -73,7 +73,6 @@ $behavior_names = [
 	"sequence_solid"   => "Sequence - Solid",
 	"sequence_fade"    => "Sequence - Fade",
 	"sequence_decay"   => "Sequence - Decay",
-	"sequence_morse"   => "Sequence - Morse",
 	"sequence_wigwag"  => "Sequence - Wigwag",
 	"sequence_sos"     => "Sequence - SOS",
 	"sequence_breathe" => "Sequence - Breathe",

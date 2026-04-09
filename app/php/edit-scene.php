@@ -121,7 +121,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 		"Sequence - Solid"   => "sequence_solid",
 		"Sequence - Fade"    => "sequence_fade",
 		"Sequence - Decay"   => "sequence_decay",
-		"Sequence - Morse"   => "sequence_morse",
 		"Sequence - Wigwag"  => "sequence_wigwag",
 		"Sequence - SOS"     => "sequence_sos",
 		"Sequence - Breathe" => "sequence_breathe",
@@ -268,12 +267,11 @@ $int_to_behavior_names_db = [
 	0 => "sequence_solid",
 	1 => "sequence_fade",
 	2 => "sequence_decay",
-	3 => "sequence_morse",
-	4 => "sequence_wigwag",
-	5 => "sequence_sos",
-	6 => "sequence_breathe",
-	7 => "crossfade",
-	8 => "crossfade_hold"
+	3 => "sequence_wigwag",
+	4 => "sequence_sos",
+	5 => "sequence_breathe",
+	6 => "crossfade",
+	7 => "crossfade_hold"
 	];
 
 // array of form names
@@ -281,12 +279,11 @@ $int_to_behavior_names_styled = [
 	0 => "Sequence - Solid",
 	1 => "Sequence - Fade",
 	2 => "Sequence - Decay",
-	3 => "Sequence - Morse",
-	4 => "Sequence - Wigwag",
-	5 => "Sequence - SOS",
-	6 => "Sequence - Breathe",
-	7 => "Crossfade",
-	8 => "Crossfade - Hold"
+	3 => "Sequence - Wigwag",
+	4 => "Sequence - SOS",
+	5 => "Sequence - Breathe",
+	6 => "Crossfade",
+	7 => "Crossfade - Hold"
 	];
 
 // color_id to name
@@ -462,7 +459,7 @@ catch (PDOException $e)
 						<label for="behavior">Behavior</label><br>
 						<select class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 mb-2" type="text" id="behavior" name="behavior"><br>
 							<optgroup label="Behavior">
-								<?php for ($i = 0; $i < 9; $i++): ?>
+								<?php for ($i = 0; $i < 8; $i++): ?>
 									<?php if ($int_to_behavior_names_db[$i] == $scene['behavior']): ?>
 										<option selected="selected" value="<?= $int_to_behavior_names_styled[$i]; ?>">
 											<?= $int_to_behavior_names_styled[$i]; ?>
