@@ -48,7 +48,7 @@ while True:
 		conn.commit()
 
 		# restart clock sync service
-		os.system("sudo systemctl restart sync_clocks.service")
+		os.system("systemctl restart sync_clocks.service")
 
 	# wait 1s before checking again
 	time.sleep(1)
