@@ -58,30 +58,29 @@ def reset_database_and_services(reset_LED):
             break
 
         except sqlite3.Error as e:
-            conn.rollback()
             print("Reset unsuccessful.")
             print(e)
-            try:
-                cursor.execute("DETACH DATABASE factory")
+
+            if conn:
+                conn.rollback()
                 conn.close()
-            except:
-                pass
+
             time.sleep(2)
 
 	# restart lighting control service
-    os.system("sudo systemctl restart controller.service")
+    os.system("systemctl restart controller.service")
     print("Lighting control service restarted.")
 
     # restart clock sync service
-    os.system("sudo systemctl restart sync_clocks.service")
+    os.system("systemctl restart sync_clocks.service")
     print("Clock sync service restarted.")
 
     # restart rtc control service
-    os.system("sudo systemctl restart set_rtc.service")
+    os.system("systemctl restart set_rtc.service")
     print("RTC control service restarted.")
 
     # restart apache
-    os.system("sudo systemctl restart apache2")
+    os.system("systemctl restart apache2")
     print("Apache restarted.")
 
     # sleep for 7 seconds to give services time
