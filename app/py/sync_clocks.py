@@ -24,7 +24,7 @@ while True:
 	date_string = "{:04d}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}".format(now.tm_year, now.tm_mon, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec)
 
 	# run command to set raspberry pi clock
-	os.system(f'sudo date --set "{date_string}"')
+	os.system(f'date --set "{date_string}"')
     
 	# save time to sqlite clock table
 	try:
