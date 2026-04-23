@@ -234,7 +234,7 @@ $ nmcli connection up "Hotspot"
 Connect to the hidden SSID `st-lighting` with the password `SignalTech26`. Once connected, open a browser and go to `http://10.42.0.1/`. The account registration page should be displayed.
 
 # Databases
-Two SQLite databases hold all information used by the web application and the hardware control, `lighting.db` and `factory_settings.db`. These files hold the same contents, but their use differs. `lighting.db` can be modified by the user via the web application. Any changes the user makes will exist here. `factory_settings.db` contains a backup to reset the controller if a reset is requested by the user, or the physical reset button is held for 10 seconds.
+Two SQLite databases hold all information used by the web application and the hardware control, `lighting.db` and `factory_settings.db`. These files hold the same contents, but their use differs. `lighting.db` can be modified by the user via the web application. `factory_settings.db` contains a backup to reset the controller if a reset is requested by the user, or the physical reset button is held for 10 seconds.
 
 The tables within these files are detailed below:
 ```
@@ -250,7 +250,7 @@ users            -- holds username and hashed password for single account
 ```
 
 # Web Application
-The logical structure of the web app is detailed below.
+The navigational structure of the web app is detailed below.
 ```
 register.php
 index.php
@@ -270,14 +270,36 @@ index.php
           └── edit-date-time.php
           └── reset.php
 ```
+
 ### Users
-To use the web application an account must exist and the account must be logged in. The number of accounts is not technically limited, but if an account exists, then the account creation page, `register.php`, will redirect to `index.php`, the log in page. If the user forgets their account information and cannot log in, the `Help` button can be pressed on `index.php` that links to `forgot-user-pass.php`. This page contains reset instructions. Essentially, "hold the reset button for 10 seconds".
+To use the web application, an account must exist and the user must be logged in. The number of accounts is not technically limited, but if an account exists, then the account creation page, `register.php`, will redirect to `index.php`, the log in page, when `user-check.php` is called.
+![register.php|317](register.png) ![index.php|352](index.png)
+*register.php*                                                        *index.php*
+
+If the user forgets their account information and cannot log in, the yellow `Help` button can be pressed on `index.php` that links to `forgot-user-pass.php`. This page contains reset instructions. Essentially, "hold the reset button for 10 seconds".
+![forgot_user_pass.php|309](forgot_account.png)
+*forgot-user-pass.php with placeholder image*
+
 ### Home
-sdfg
+The home page, `home.php`, is accessible once logged in and contains links to each section of the web app. There is a purple `?` button on all pages that can provide the user with helpful information.
+![home.php|265](home.png)
+*home.php*
 ### Scenes
-sdfg
+The scenes page, `scenes.php`, shows all of the user's scenes. The user may set a scene as default to have it play when no event or connection is active. Pressing the set default button on a scene will immediately change the light tubes to that scene.
+![scenes.php|267](scenes.png)
+*scenes.php*
+
+When the blue `+` icon is clicked on `scenes.php`, the user is redirected to add-scene.php to make a new scene. The user is able to choose a variety of settings and colors. They may also test the configuration they have selected with the blue `Test` button. When the save button is pressed, the scene will be shown on `scenes.php`.
+![add-scene.php|267](scene_add.png) ![colors|267](scene_colors.png)
+                        *add-scene.php*
+
+Alternatively, if the user presses the yellow `✏️` button on a scene on `scenes.php`, the user is redirected to `edit-scene.php`. The interface is similar to `add-scene.php` but will have the selected scene's information prefilled. Additionally, a red `Delete` button is present next to the blue `Test` button at the bottom of the page (as long as the default scene is not being edited).
+![edit-scene.php|218](scene_edit.png)![edit_scene.php|218](scene_colors.png)![edit_scene.php|218](scene_colors3.png)
+  *edit_scene.php: options at the bottom of the page for the default scene and non-default scene*
+
 ### Connections
-sdfg
+The scenes page, `scenes.php`, shows all of the user's scenes.
+
 ### Schedule
 sdfg
 ### Setup Guide
@@ -287,6 +309,7 @@ kjhlkj
 
 # Hardware Control
 The Raspberry Pi, PCA9685 PWM IC, and DS3231 Real-Time Clock are controlled by Python daemons.
+
 ### Lighting
 `controller.py` controls the PWM IC and manages all data necessary to run lighting scenes on PWM lighting devices. This program also reads the eight inputs on the Light Tube Controller board and reports their status. When this program is running, the STAT1 LED will blink.
 
@@ -294,6 +317,7 @@ This program has an observable startup sequence. When started, the lights will b
 
 A `while` loop runs indefinitely to read updates from the database and change the active lighting. The PWM signaling is controlled by a thread and is restarted by the `main` function when the user has requested a change, or an event or connection becomes active.
 ![Thread System](thread.drawio.png)
+*The thread instructions when given new scene info
 
 Three arguments are required to run the lighting thread:
 * `color_list`, a list of up to 10 colors each represented as three floats
@@ -341,7 +365,7 @@ def sequence_solid(pwm, color_list, cycle_time, dimmer):
                 return None
 ```
 
-The web app allows users to 
+The web app allows users to pick speed brightness, these then modifed to func variables 
 
 
 ### Timing
