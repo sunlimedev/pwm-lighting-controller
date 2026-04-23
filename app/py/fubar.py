@@ -87,13 +87,15 @@ def reset_database_and_services(reset_LED):
     time.sleep(7)
 
     # turn off reset LED
-    reset_LED.off()
+    reset_LED.on()
 
 
 def main():
     # STAT1 on board using GPIO23 (board pin 16)
     reset_LED = gpiozero.LED(23)
-    reset_LED.off()
+
+    # inverted for sink into pi
+    reset_LED.on()
 
     # RESET on board using GPIO24 (board pin 18)
     reset_button = gpiozero.Button(24, pull_up = False, hold_time = 9.5)
